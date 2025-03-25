@@ -194,7 +194,7 @@ class HealthDataAnalyzer:
         predictor.train_model()
 
 def main():
-    analyzer = HealthDataAnalyzer('detailed_health_logs.csv')
+    analyzer = HealthDataAnalyzer('Improvised-Project\detailed_health_logs.csv')
     analyzer.load_data()
     
     # Visualize all charts separately

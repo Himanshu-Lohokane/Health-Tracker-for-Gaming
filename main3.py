@@ -498,28 +498,6 @@ class HealthTracker(QMainWindow):
         self.progress_button.clicked.connect(self.show_graph)
         other_buttons_layout.addWidget(self.progress_button, 0, 1)
         
-        # Export button
-        self.export_button = QPushButton("Export Logs")
-        self.export_button.setStyleSheet("""
-            QPushButton {
-                background-color: #FF9800;
-                color: white;
-                border-radius: 15px;
-                padding: 10px;
-                font-size: 14px;
-                font-weight: bold;
-                border: 2px solid #FF9800;
-            }
-            QPushButton:hover {
-                background-color: #F57C00;
-            }
-            QPushButton:pressed {
-                background-color: #E65100;
-            }
-        """)
-        self.export_button.clicked.connect(self.export_logs)
-        other_buttons_layout.addWidget(self.export_button, 1, 0)
-        
         # Dark mode button
         self.dark_mode_button = QPushButton("Toggle Dark Mode")
         self.dark_mode_button.setStyleSheet("""
@@ -542,6 +520,29 @@ class HealthTracker(QMainWindow):
         self.dark_mode_button.clicked.connect(self.toggle_theme)
         other_buttons_layout.addWidget(self.dark_mode_button, 1, 1)
         
+        # Comment out the Export button from the other_buttons_layout
+        # Export button
+        # self.export_button = QPushButton("Export Logs")
+        # self.export_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #FF9800;
+        #         color: white;
+        #         border-radius: 15px;
+        #         padding: 10px;
+        #         font-size: 14px;
+        #         font-weight: bold;
+        #         border: 2px solid #FF9800;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #F57C00;
+        #     }
+        #     QPushButton:pressed {
+        #         background-color: #E65100;
+        #     }
+        # """)
+        # self.export_button.clicked.connect(self.export_logs)
+        # other_buttons_layout.addWidget(self.export_button, 1, 0)
+
         self.right_layout.addLayout(other_buttons_layout)
         
         # Add frames to main layout
@@ -703,38 +704,6 @@ class HealthTracker(QMainWindow):
         plt.tight_layout()
         plt.show()
     
-    def export_logs(self):
-        try:
-            with sqlite3.connect("health_tracker.db") as conn:
-                c = conn.cursor()
-                c.execute("SELECT * FROM detailed_logs")
-                rows = c.fetchall()
-        except sqlite3.Error as e:
-            print(f"Database error: {e}")
-            rows = []
-
-        if not rows:
-            QMessageBox.information(self, "No Data", "No data available to export.")
-            return
-
-        log_directory = "health_logs"
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
-
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = os.path.join(log_directory, f"detailed_health_logs_{timestamp}.csv")
-
-        try:
-            with open(filename, "w", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(["ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
-                               "Water Intake", "Break Taken", "Activity", "Forward Lean", 
-                               "Shoulder Alignment", "Session Status", "Game"])
-                writer.writerows(rows)
-            QMessageBox.information(self, "Export Success", f"Logs exported as {filename}")
-        except Exception as e:
-            QMessageBox.critical(self, "Export Error", f"An error occurred while exporting logs: {str(e)}")
-    
     def closeEvent(self, event):
         self.cleanup()
         event.accept()
@@ -745,6 +714,39 @@ class HealthTracker(QMainWindow):
         self.posture_detector.release()
         self.timer.stop()
         self.logs_timer.stop()
+
+    # Comment out the export_logs method since it is no longer used
+    # def export_logs(self):
+    #     try:
+    #         with sqlite3.connect("health_tracker.db") as conn:
+    #             c = conn.cursor()
+    #             c.execute("SELECT * FROM detailed_logs")
+    #             rows = c.fetchall()
+    #     except sqlite3.Error as e:
+    #         print(f"Database error: {e}")
+    #         rows = []
+
+    #     if not rows:
+    #         QMessageBox.information(self, "No Data", "No data available to export.")
+    #         return
+
+    #     log_directory = "health_logs"
+    #     if not os.path.exists(log_directory):
+    #         os.makedirs(log_directory)
+
+    #     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    #     filename = os.path.join(log_directory, f"detailed_health_logs_{timestamp}.csv")
+
+    #     try:
+    #         with open(filename, "w", newline="") as file:
+    #             writer = csv.writer(file)
+    #             writer.writerow(["ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
+    #                            "Water Intake", "Break Taken", "Activity", "Forward Lean", 
+    #                            "Shoulder Alignment", "Session Status", "Game"])
+    #             writer.writerows(rows)
+    #         QMessageBox.information(self, "Export Success", f"Logs exported as {filename}")
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Export Error", f"An error occurred while exporting logs: {str(e)}")
 
 def main():
     setup_database()

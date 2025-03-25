@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from PyQt6.QtGui import QImage
+from PyQt6.QtGui import QImage, QPixmap
 from collections import deque
 from statistics import mode
 
@@ -97,11 +97,12 @@ class PostureDetector:
         # Convert to QImage for PyQt6
         h, w, ch = frame_rgb.shape
         qt_image = QImage(frame_rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
+        qt_pixmap = QPixmap.fromImage(qt_image)  # Convert QImage to QPixmap
 
         self.current_feedback = feedback
         self.posture_buffer.append(feedback)
 
-        return qt_image, feedback, back_angle, forward_lean, shoulder_diff
+        return qt_pixmap, feedback, back_angle, forward_lean, shoulder_diff
 
     def analyze_pose(self, landmarks):
         """Analyze pose landmarks and return feedback"""
