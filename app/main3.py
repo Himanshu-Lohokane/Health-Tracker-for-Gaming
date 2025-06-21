@@ -61,124 +61,18 @@ def setup_database():
 # Insert log into database
 def log_action(action, posture_status=None, back_angle=None, water_intake=None, break_taken=None, 
                activity=None, forward_lean=None, shoulder_alignment=None, session_status=None, game=None):
-    """
-    Log an action to the database with proper data validation and error handling.
-    
-    Args:
-        action (str): The action being logged
-        posture_status (str): Posture status (standardized values)
-        back_angle (float): Back angle measurement
-        water_intake (int): Water intake flag (0 or 1)
-        break_taken (int): Break taken flag (0 or 1)
-        activity (str): Current activity
-        forward_lean (float): Forward lean measurement
-        shoulder_alignment (float): Shoulder alignment measurement
-        session_status (str): Session status
-        game (str): Current game name
-    """
     try:
-        # Data validation and standardization
-        if posture_status:
-            # Standardize posture status values
-            posture_status = posture_status.strip().title()
-            if "good" in posture_status.lower():
-                posture_status = "Good Posture"
-            elif "bad" in posture_status.lower() or "slouch" in posture_status.lower():
-                posture_status = "Slouching"
-            elif "forward" in posture_status.lower():
-                posture_status = "Forward Head Posture"
-            else:
-                posture_status = "Unknown Posture"
-        
-        # Validate numeric values
-        if back_angle is not None:
-            try:
-                back_angle = float(back_angle)
-                if back_angle < 0 or back_angle > 360:
-                    back_angle = None  # Invalid angle
-            except (ValueError, TypeError):
-                back_angle = None
-        
-        if forward_lean is not None:
-            try:
-                forward_lean = float(forward_lean)
-                if forward_lean < 0:
-                    forward_lean = None
-            except (ValueError, TypeError):
-                forward_lean = None
-        
-        if shoulder_alignment is not None:
-            try:
-                shoulder_alignment = float(shoulder_alignment)
-                if shoulder_alignment < 0:
-                    shoulder_alignment = None
-            except (ValueError, TypeError):
-                shoulder_alignment = None
-        
-        # Validate boolean flags
-        water_intake = 1 if water_intake else 0
-        break_taken = 1 if break_taken else 0
-        
-        # Ensure action is not None
-        if not action:
-            action = "Unknown Action"
-        
-        # Get current timestamp in ISO format
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
         with sqlite3.connect("health_tracker.db") as conn:
             c = conn.cursor()
             c.execute('''INSERT INTO detailed_logs (timestamp, action, posture_status, back_angle, 
                          water_intake, break_taken, activity, forward_lean, shoulder_alignment, 
                          session_status, game)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (timestamp, action, posture_status, back_angle, water_intake, break_taken, 
-                       activity, forward_lean, shoulder_alignment, session_status, game))
+                         VALUES (datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (action, posture_status, back_angle, water_intake, break_taken, activity, 
+                       forward_lean, shoulder_alignment, session_status, game))
             conn.commit()
-            
     except sqlite3.Error as e:
-        print(f"Database error in log_action: {e}")
-    except Exception as e:
-        print(f"Unexpected error in log_action: {e}")
-
-# Enhanced posture logging function
-def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_name=None):
-    """
-    Log posture data with proper validation and standardization.
-    
-    Args:
-        feedback (str): Posture feedback from detector (can be aggregated)
-        back_angle (float): Back angle measurement
-        forward_lean (float): Forward lean measurement  
-        shoulder_diff (float): Shoulder alignment difference
-        game_name (str): Current game name
-    """
-    # Standardize posture status based on feedback
-    posture_status = "Unknown Posture"
-    if feedback:
-        feedback_lower = feedback.lower()
-        if "good" in feedback_lower:
-            posture_status = "Good Posture"
-        elif any(word in feedback_lower for word in ["bad", "slouch", "uneven", "lean"]):
-            posture_status = "Slouching"
-        elif "forward" in feedback_lower:
-            posture_status = "Forward Head Posture"
-        else:
-            posture_status = "Unknown Posture"
-    
-    # Create action message indicating this is aggregated data
-    action_message = f"Aggregated Posture: {posture_status}"
-    
-    # Log the posture data
-    log_action(
-        action=action_message,
-        posture_status=posture_status,
-        back_angle=back_angle,
-        forward_lean=forward_lean,
-        shoulder_alignment=shoulder_diff,
-        session_status="Running",
-        game=game_name
-    )
+        print(f"Database error: {e}")
 
 # Add points for completing reminders
 def add_points(points):
@@ -249,7 +143,7 @@ class ReminderWorker(QThread):
                 c.execute("SELECT hydration_interval, break_interval FROM user_settings WHERE id = 1")
                 hydration_interval, break_interval = c.fetchone()
         except sqlite3.Error as e:
-            print(f"Database error in ReminderWorker: {e}")
+            print(f"Database error: {e}")
             hydration_interval, break_interval = 15, 30
 
         hydration_interval *= 60
@@ -272,13 +166,9 @@ class ReminderWorker(QThread):
                             message=f"{random.choice(HEALTH_TIPS)}\nTake a sip of water!",
                             timeout=10
                         )
-                    except Exception as e:
-                        print(f"Notification error: {e}")
-                        try:
-                            toaster.show_toast("Hydration Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a sip of water!",
-                                            duration=10)
-                        except Exception as e2:
-                            print(f"Toast notification error: {e2}")
+                    except:
+                        toaster.show_toast("Hydration Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a sip of water!",
+                                        duration=10)
                     
                     self.notification_sent.emit(f"Hydration reminder sent", "hydration", game_running)
                     log_action("Hydration reminder sent", water_intake=1, game=game_name)
@@ -292,13 +182,9 @@ class ReminderWorker(QThread):
                             message=f"{random.choice(HEALTH_TIPS)}\nTake a 5-minute break!",
                             timeout=10
                         )
-                    except Exception as e:
-                        print(f"Notification error: {e}")
-                        try:
-                            toaster.show_toast("Break Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a 5-minute break!",
-                                            duration=10)
-                        except Exception as e2:
-                            print(f"Toast notification error: {e2}")
+                    except:
+                        toaster.show_toast("Break Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a 5-minute break!",
+                                        duration=10)
                     
                     self.notification_sent.emit(f"Break reminder sent", "break", game_running)
                     log_action("Break reminder sent", break_taken=1, game=game_name)
@@ -724,23 +610,18 @@ class HealthTracker(QMainWindow):
         self.video_label.setPixmap(pixmap)
         self.posture_feedback.setText(f"Posture Status: {feedback}")
         
-        # Log aggregated posture data every 30 seconds using mode for reliability
+        # Log aggregated data every 30 seconds
         current_time = time.time()
         if current_time - self.last_log_time >= 30 and self.running:
-            game_running, game_name = is_game_running()
-            
-            # Get the most common posture over the last 30 seconds (mode aggregation)
             aggregated_posture = self.posture_detector.get_aggregated_posture()
-            
-            # Use the enhanced posture logging function with aggregated data
-            log_posture_data(
-                feedback=aggregated_posture,  # Use aggregated posture instead of current frame
-                back_angle=back_angle,
-                forward_lean=forward_lean,
-                shoulder_diff=shoulder_diff,
-                game_name=game_name
-            )
-            
+            game_running, game_name = is_game_running()
+            log_action(f"Aggregated Posture: {aggregated_posture}", 
+                      posture_status=feedback, 
+                      back_angle=back_angle, 
+                      forward_lean=forward_lean, 
+                      shoulder_alignment=shoulder_diff, 
+                      session_status="Running", 
+                      game=game_name)
             self.last_log_time = current_time
     
     def start_session(self):
@@ -748,31 +629,14 @@ class HealthTracker(QMainWindow):
             self.running = True
             self.start_time = time.time()
             self.timer.start(1000)  # Update every second
-            
-            # Log session start with game status
-            game_running, game_name = is_game_running()
-            log_action(
-                action="Session started", 
-                session_status="Started",
-                game=game_name
-            )
+            log_action("Session started", session_status="Started")
             self.update_logs()
     
     def stop_session(self):
         if self.running:
-            # Calculate session duration before stopping
-            session_duration = int(time.time() - self.start_time) if self.start_time else 0
-            
             self.running = False
             self.timer.stop()
-            
-            # Log session stop with duration and game status
-            game_running, game_name = is_game_running()
-            log_action(
-                action=f"Session stopped (Duration: {session_duration} seconds)", 
-                session_status="Stopped",
-                game=game_name
-            )
+            log_action("Session stopped", session_status="Stopped")
             self.update_logs()
     
     def update_timer(self):
@@ -851,48 +715,77 @@ class HealthTracker(QMainWindow):
         self.timer.stop()
         self.logs_timer.stop()
 
-    def export_logs(self):
-        """Export logs to CSV with improved error handling and data validation"""
-        try:
-            with sqlite3.connect("health_tracker.db") as conn:
-                c = conn.cursor()
-                c.execute("SELECT * FROM detailed_logs ORDER BY timestamp DESC")
-                rows = c.fetchall()
-        except sqlite3.Error as e:
-            print(f"Database error in export_logs: {e}")
-            QMessageBox.critical(self, "Export Error", f"Database error: {e}")
-            return
+    # Comment out the export_logs method since it is no longer used
+    # def export_logs(self):
+    #     try:
+    #         with sqlite3.connect("health_tracker.db") as conn:
+    #             c = conn.cursor()
+    #             c.execute("SELECT * FROM detailed_logs")
+    #             rows = c.fetchall()
+    #     except sqlite3.Error as e:
+    #         print(f"Database error: {e}")
+    #         rows = []
 
-        if not rows:
-            QMessageBox.information(self, "No Data", "No data available to export.")
-            return
+    #     if not rows:
+    #         QMessageBox.information(self, "No Data", "No data available to export.")
+    #         return
 
-        # Create logs directory if it doesn't exist
-        log_directory = "health_logs"
-        if not os.path.exists(log_directory):
-            os.makedirs(log_directory)
+    #     log_directory = "health_logs"
+    #     if not os.path.exists(log_directory):
+    #         os.makedirs(log_directory)
 
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = os.path.join(log_directory, f"detailed_health_logs_{timestamp}.csv")
+    #     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    #     filename = os.path.join(log_directory, f"detailed_health_logs_{timestamp}.csv")
 
-        try:
-            with open(filename, "w", newline="", encoding='utf-8') as file:
-                writer = csv.writer(file)
-                # Write header with all column names
-                writer.writerow([
-                    "ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
-                    "Water Intake", "Break Taken", "Activity", "Forward Lean", 
-                    "Shoulder Alignment", "Session Status", "Game"
-                ])
-                writer.writerows(rows)
-            
-            QMessageBox.information(self, "Export Success", f"Logs exported successfully to:\n{filename}")
-            print(f"Logs exported to: {filename}")
-            
-        except Exception as e:
-            print(f"File write error in export_logs: {e}")
-            QMessageBox.critical(self, "Export Error", f"Failed to write file: {e}")
+    #     try:
+    #         with open(filename, "w", newline="") as file:
+    #             writer = csv.writer(file)
+    #             writer.writerow(["ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
+    #                            "Water Intake", "Break Taken", "Activity", "Forward Lean", 
+    #                            "Shoulder Alignment", "Session Status", "Game"])
+    #             writer.writerows(rows)
+    #         QMessageBox.information(self, "Export Success", f"Logs exported as {filename}")
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Export Error", f"An error occurred while exporting logs: {str(e)}")
+
+# Enhanced posture logging function
+def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_name=None):
+    """
+    Log posture data with proper validation and standardization.
+    
+    Args:
+        feedback (str): Posture feedback from detector (can be aggregated)
+        back_angle (float): Back angle measurement
+        forward_lean (float): Forward lean measurement  
+        shoulder_diff (float): Shoulder alignment difference
+        game_name (str): Current game name
+    """
+    # Standardize posture status based on feedback
+    posture_status = "Unknown Posture"
+    if feedback:
+        feedback_lower = feedback.lower()
+        if "good" in feedback_lower:
+            posture_status = "Good Posture"
+        elif any(word in feedback_lower for word in ["bad", "slouch", "uneven", "lean"]):
+            posture_status = "Slouching"
+        elif "forward" in feedback_lower:
+            posture_status = "Forward Head Posture"
+        else:
+            posture_status = "Unknown Posture"
+    
+    # Create action message indicating this is aggregated data
+    action_message = f"Aggregated Posture: {posture_status}"
+    
+    # Log the posture data
+    log_action(
+        action=action_message,
+        posture_status=posture_status,
+        back_angle=back_angle,
+        forward_lean=forward_lean,
+        shoulder_alignment=shoulder_diff,
+        session_status="Running",
+        game=game_name
+    )
 
 def main():
     setup_database()

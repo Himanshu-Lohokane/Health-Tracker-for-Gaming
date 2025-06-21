@@ -4,16 +4,15 @@ Test script to verify the improved logging system works correctly.
 This script will test the database setup and logging functions.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../app')))
+
 import sqlite3
 import time
 from datetime import datetime
-import sys
-import os
 
-# Add the current directory to Python path to import from main3
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-# Import the logging functions from main3
+# Import from app
 from main3 import setup_database, log_action, log_posture_data
 
 def test_database_setup():
@@ -153,7 +152,7 @@ def verify_logged_data():
         return False
 
 def main():
-    """Run all tests"""
+    setup_database()  # Ensure DB is initialized before tests
     print("🧪 Testing Health Tracker Logging System")
     print("=" * 50)
     
