@@ -5,11 +5,12 @@ from collections import deque
 from statistics import mode
 
 class PostureDetector:
-    def __init__(self):
+    def __init__(self, headless=False):
         self.cap = None
         self.current_feedback = "No posture data"
         self.posture_buffer = deque(maxlen=30)
         self.mediapipe_available = False
+        self.headless = headless
 
         # Try to import mediapipe
         try:
@@ -53,56 +54,69 @@ class PostureDetector:
 
     def get_frame(self):
         if self.cap is None or not self.cap.isOpened():
+            print("Camera not initialized or not opened.")
             return None, "Camera not initialized", None, None, None
 
-        ret, frame = self.cap.read()
-        if not ret:
-            return None, "Failed to capture frame", None, None, None
+        try:
+            ret, frame = self.cap.read()
+            if not ret:
+                print("Failed to capture frame from camera.")
+                return None, "Failed to capture frame", None, None, None
 
-        # Resize frame
-        frame = cv2.resize(frame, (640, 480))
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            # Resize frame
+            frame = cv2.resize(frame, (640, 480))
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        back_angle = None
-        forward_lean = None
-        shoulder_diff = None
+            back_angle = None
+            forward_lean = None
+            shoulder_diff = None
 
-        if self.mediapipe_available:
-            try:
-                # MediaPipe pose detection
-                results = self.pose.process(frame_rgb)
-                if results.pose_landmarks:
-                    self.mp_drawing.draw_landmarks(
-                        frame_rgb,
-                        results.pose_landmarks,
-                        self.mp_pose.POSE_CONNECTIONS
-                    )
-                    feedback, back_angle, forward_lean, shoulder_diff = self.analyze_pose(results.pose_landmarks.landmark)
-                else:
-                    feedback = "No pose detected"
-            except Exception as e:
-                print(f"Pose detection error: {e}")
-                feedback = "Pose detection error"
-        else:
-            # Fallback movement-based detection
-            movement = self.calculate_movement(frame)
-            self.movement_buffer.append(movement)
-            avg_movement = sum(self.movement_buffer) / len(self.movement_buffer)
-
-            if avg_movement > self.motion_threshold:
-                feedback = "Movement detected - possible posture change"
+            if self.mediapipe_available:
+                try:
+                    # MediaPipe pose detection
+                    results = self.pose.process(frame_rgb)
+                    if results.pose_landmarks:
+                        if not self.headless:
+                            self.mp_drawing.draw_landmarks(
+                                frame_rgb,
+                                results.pose_landmarks,
+                                self.mp_pose.POSE_CONNECTIONS
+                            )
+                        feedback, back_angle, forward_lean, shoulder_diff = self.analyze_pose(results.pose_landmarks.landmark)
+                    else:
+                        feedback = "No pose detected"
+                except Exception as e:
+                    print(f"Pose detection error: {e}")
+                    feedback = "Pose detection error"
             else:
-                feedback = "Limited movement detected"
+                # Fallback movement-based detection
+                movement = self.calculate_movement(frame)
+                self.movement_buffer.append(movement)
+                avg_movement = sum(self.movement_buffer) / len(self.movement_buffer)
 
-        # Convert to QImage for PyQt6
-        h, w, ch = frame_rgb.shape
-        qt_image = QImage(frame_rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
-        qt_pixmap = QPixmap.fromImage(qt_image)  # Convert QImage to QPixmap
+                if avg_movement > self.motion_threshold:
+                    feedback = "Movement detected - possible posture change"
+                else:
+                    feedback = "Limited movement detected"
 
-        self.current_feedback = feedback
-        self.posture_buffer.append(feedback)
+            if not self.headless:
+                try:
+                    h, w, ch = frame_rgb.shape
+                    qt_image = QImage(frame_rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
+                    qt_pixmap = QPixmap.fromImage(qt_image)  # Convert QImage to QPixmap
+                except Exception as e:
+                    print(f"QPixmap/QImage creation error: {e}")
+                    qt_pixmap = None
+            else:
+                qt_pixmap = None
 
-        return qt_pixmap, feedback, back_angle, forward_lean, shoulder_diff
+            self.current_feedback = feedback
+            self.posture_buffer.append(feedback)
+
+            return qt_pixmap, feedback, back_angle, forward_lean, shoulder_diff
+        except Exception as e:
+            print(f"General error in get_frame: {e}")
+            return None, f"Frame processing error: {e}", None, None, None
 
     def analyze_pose(self, landmarks):
         """Analyze pose landmarks and return feedback"""

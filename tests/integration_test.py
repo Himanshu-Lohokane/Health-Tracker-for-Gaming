@@ -142,9 +142,9 @@ def test_posture_detection_import():
         # Test module import
         print("✅ Posture detection module imported successfully")
 
-        # Test detector initialization
-        detector = PostureDetector()
-        print("✅ Posture detector initialized")
+        # Test detector initialization in headless mode
+        detector = PostureDetector(headless=True)
+        print("✅ Posture detector initialized (headless mode)")
 
         # Test camera initialization (might fail if no camera)
         camera_initialized = detector.initialize_camera()
