@@ -1,0 +1,13 @@
+# Immediate Changes: Iteration 1, Step 1
+
+## Create a requirements.txt and test a clean install
+
+### Sub-steps:
+1. List all Python dependencies used in the project (PyQt6, mediapipe, matplotlib, etc.)
+2. Create a requirements.txt file in the root directory
+3. Test installation in a fresh virtual environment:
+   - Create a new venv
+   - Run `pip install -r requirements.txt`
+   - Run `python app/main3.py` to ensure the app starts
+   - Run `python tests/integration_test.py` to ensure tests pass
+4. Update README with installation instructions if needed 

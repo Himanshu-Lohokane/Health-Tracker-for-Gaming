@@ -1,0 +1,74 @@
+# Next Big Steps for Health Tracker Project
+
+## 1. Deployment & Dependencies
+**Big Goal:** Make the project easy to install, run, and maintain for anyone.
+
+### Steps:
+1. Create a requirements.txt
+2. Add installation instructions to README
+3. (Optional) Add a setup.py or pyproject.toml
+4. (Optional) Add version management
+
+## 2. Performance Optimizations
+**Big Goal:** Make the app more efficient and robust for long-term use.
+
+### Steps:
+1. Database Connection Pooling
+2. Frame Buffering for Video
+3. Optimize Database Queries
+4. Add Caching for Frequently Accessed Data
+
+## 3. Memory Leaks & Resource Management
+**Big Goal:** Ensure the app doesn't leak memory or leave resources open.
+
+### Steps:
+1. Audit QImage/QPixmap usage
+2. Camera Resource Management
+3. Frame Buffer Management
+
+## 4. Hardcoded Values & Magic Numbers
+**Big Goal:** Make the app configurable and easier to maintain.
+
+### Steps:
+1. Move hardcoded values to a config file or settings table
+2. Document all configuration options
+
+## 5. ML Model Improvements
+**Big Goal:** Make fatigue prediction and anomaly detection more robust.
+
+### Steps:
+1. Review and document current thresholds
+2. Add feature engineering/normalization
+3. Improve model evaluation
+4. (Optional) Allow user feedback to improve model
+
+## 6. User Feedback & Error Handling
+**Big Goal:** Make the app user-friendly and robust to errors.
+
+### Steps:
+1. Add user feedback for missing features/dependencies
+2. Improve error dialogs
+
+## 7. Documentation & Onboarding
+**Big Goal:** Make it easy for new contributors and users to get started.
+
+### Steps:
+1. Expand README with troubleshooting and FAQ
+2. Add docstrings to all major functions/classes
+3. Document the data schema and config options
+
+## 8. (Optional) Refactoring & Architecture
+**Big Goal:** Make the codebase more maintainable.
+
+### Steps:
+1. Gradually refactor duplicate code into shared modules
+2. Consider dependency injection for easier testing
+3. Add more unit tests as you refactor
+
+# Recommended Next Steps (Iteration 1)
+
+1. Create a requirements.txt and test a clean install
+2. Move all hardcoded values to a config/settings file
+3. Add user feedback for missing dependencies (MediaPipe, camera)
+4. Audit and fix any obvious memory leaks in video/posture code
+5. Document the data schema and config options 
