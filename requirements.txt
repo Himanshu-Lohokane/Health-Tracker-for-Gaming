@@ -1,0 +1,12 @@
+PyQt6
+mediapipe
+opencv-python
+numpy
+matplotlib
+pandas
+scikit-learn
+psutil
+plyer
+win10toast
+plotly
+scipy 

@@ -134,40 +134,52 @@ def test_game_detection():
         return False
 
 def test_posture_detection_import():
-    """Test posture detection module import and basic functionality"""
+    """Test posture detection module import and basic functionality with real frame capture"""
     print("\n🔍 Testing Posture Detection Module...")
-    
+
+    detector = None
     try:
         # Test module import
         print("✅ Posture detection module imported successfully")
-        
+
         # Test detector initialization
         detector = PostureDetector()
         print("✅ Posture detector initialized")
-        
+
         # Test camera initialization (might fail if no camera)
         camera_initialized = detector.initialize_camera()
-        if camera_initialized:
-            print("✅ Camera initialized successfully")
+        if not camera_initialized:
+            print("⚠️  Camera not available (expected in some environments). Skipping frame capture.")
+            return True
+        print("✅ Camera initialized successfully")
+
+        # Capture frames for a few seconds to fill the posture buffer
+        frame_count = 0
+        max_frames = 30
+        feedbacks = []
+        for _ in range(max_frames):
+            qt_pixmap, feedback, back_angle, forward_lean, shoulder_diff = detector.get_frame()
+            feedbacks.append(feedback)
+            frame_count += 1
+            time.sleep(0.05)  # Small delay to simulate real capture
+
+        # Check aggregated posture
+        aggregated = detector.get_aggregated_posture()
+        print(f"✅ Aggregated posture method working: {aggregated}")
+        if aggregated == "No posture data":
+            print("⚠️  No posture data detected after capturing frames. Check camera and lighting conditions.")
         else:
-            print("⚠️  Camera not available (expected in some environments)")
-        
-        # Test aggregated posture method
-        try:
-            aggregated = detector.get_aggregated_posture()
-            print(f"✅ Aggregated posture method working: {aggregated}")
-        except Exception as e:
-            print(f"⚠️  Aggregated posture method error: {e}")
-        
-        # Clean up
-        detector.release()
-        print("✅ Posture detector cleanup successful")
-        
+            print(f"✅ Posture detected: {aggregated}")
+
         return True
-        
+
     except Exception as e:
         print(f"❌ Posture detection test failed: {e}")
         return False
+    finally:
+        if detector is not None:
+            detector.release()
+            print("✅ Posture detector cleanup successful")
 
 def test_data_validation():
     """Test data validation and error handling"""
