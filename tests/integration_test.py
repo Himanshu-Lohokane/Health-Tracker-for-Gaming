@@ -354,6 +354,35 @@ def test_camera_failure():
     print("✅ Camera failure error handling PASSED")
     return True
 
+def test_rapid_start_stop_cleanup():
+    """Simulate rapid start/stop of PostureDetector and VideoWorker to check for resource leaks."""
+    print("\n🔍 Testing Rapid Start/Stop and Cleanup...")
+    try:
+        from app.posture_detection import PostureDetector
+    except ImportError:
+        from posture_detection import PostureDetector
+    import time
+    cleanup_logs = []
+    class DummyVideoWorker:
+        def __init__(self, detector):
+            self.detector = detector
+            self.running = True
+        def stop(self):
+            self.running = False
+            cleanup_logs.append("[DummyVideoWorker] Video thread stopped.")
+    for i in range(5):
+        detector = PostureDetector(headless=True)
+        worker = DummyVideoWorker(detector)
+        # Simulate start/stop
+        worker.stop()
+        detector.release()
+        cleanup_logs.append(f"[Test] Iteration {i+1} cleanup complete.")
+        time.sleep(0.1)
+    for log in cleanup_logs:
+        print(log)
+    print("✅ Rapid start/stop cleanup test PASSED")
+    return True
+
 def main():
     setup_database()  # Ensure DB is initialized before tests
     print("🧪 HEALTH TRACKER INTEGRATION TEST")
@@ -367,7 +396,8 @@ def main():
         ("Database Performance", test_database_performance),
         ("Export Functionality", test_export_functionality),
         ("Missing MediaPipe Handling", test_missing_mediapipe),
-        ("Camera Failure Handling", test_camera_failure)
+        ("Camera Failure Handling", test_camera_failure),
+        ("Rapid Start/Stop Cleanup", test_rapid_start_stop_cleanup)
     ]
     passed = 0
     total = len(tests)

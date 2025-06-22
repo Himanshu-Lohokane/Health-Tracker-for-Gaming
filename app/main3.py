@@ -132,6 +132,7 @@ class VideoWorker(QThread):
     
     def stop(self):
         self.running = False
+        print("[VideoWorker] Video thread stopped.")
 
 # Reminder Worker Thread
 class ReminderWorker(QThread):
@@ -714,11 +715,14 @@ class HealthTracker(QMainWindow):
         event.accept()
     
     def cleanup(self):
+        # Clean up all resources and threads on app exit
+        print("[HealthTracker] Cleaning up resources...")
         self.video_thread.stop()
         self.reminder_thread.stop()
         self.posture_detector.release()
         self.timer.stop()
         self.logs_timer.stop()
+        print("[HealthTracker] Cleanup complete.")
 
     # Comment out the export_logs method since it is no longer used
     # def export_logs(self):

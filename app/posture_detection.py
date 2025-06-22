@@ -181,11 +181,13 @@ class PostureDetector:
         return "No posture data"
 
     def release(self):
-        """Clean up resources"""
+        """Clean up resources. Always call this on app exit or error to avoid camera/memory leaks."""
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
+            print("[PostureDetector] Camera released.")
         if self.mediapipe_available:
             try:
                 self.pose.close()
-            except:
-                pass
+                print("[PostureDetector] MediaPipe pose model closed.")
+            except Exception as e:
+                print(f"[PostureDetector] Error closing pose model: {e}")

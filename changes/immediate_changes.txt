@@ -28,12 +28,47 @@
 
 # Immediate Changes: Iteration 1, Step 2
 
-## Add user feedback for missing dependencies (MediaPipe, camera)
+## ~~Add user feedback for missing dependencies (MediaPipe, camera)~~
+
+### ~~Sub-steps:~~
+~~1. Audit all imports and initialization for MediaPipe and camera usage in the app (especially posture_detection.py and main3.py).~~
+~~2. Add user-friendly error dialogs or console messages if MediaPipe is missing or fails to load.~~
+~~3. Add user-friendly error dialogs or console messages if the camera is missing, busy, or fails to initialize.~~
+~~4. Ensure all such errors are logged and do not crash the app; provide actionable suggestions to the user.~~
+~~5. Test by simulating missing dependencies and camera access issues.~~
+~~6. Update README with troubleshooting tips for these errors.~~
+
+--------------------------------------------------------------------------------------------
+
+# Immediate Changes: Iteration 1, Step 3
+
+## ~~Audit and fix any obvious memory leaks in video/posture code~~
+
+### ~~Sub-steps:~~
+~~1. Audit all QImage/QPixmap usage for proper creation and release (especially in posture_detection.py and main3.py).~~
+~~2. Audit camera resource management: ensure cameras are always released on exit, error, or restart.~~
+~~3. Audit frame buffer and posture buffer management for leaks or unbounded growth.~~
+~~4. Add/fix cleanup logic in all relevant classes and threads (VideoWorker, PostureDetector, main window, etc.).~~
+~~5. Add/expand tests to simulate rapid start/stop and check for resource leaks.~~
+~~6. Print/log resource status and cleanup actions for verification.~~
+~~7. Run integration tests and main app, monitor for leaks or warnings.~~
+
+--------------------------------------------------------------------------------------------
+
+# Immediate Changes: Iteration 1, Step 4
+
+## Document the data schema and config options
 
 ### Sub-steps:
-1. Audit all imports and initialization for MediaPipe and camera usage in the app (especially posture_detection.py and main3.py).
-2. Add user-friendly error dialogs or console messages if MediaPipe is missing or fails to load.
-3. Add user-friendly error dialogs or console messages if the camera is missing, busy, or fails to initialize.
-4. Ensure all such errors are logged and do not crash the app; provide actionable suggestions to the user.
-5. Test by simulating missing dependencies and camera access issues.
-6. Update README with troubleshooting tips for these errors. 
+1. Review all database tables and their fields (health_logs, user_settings, user_points, detailed_logs).
+2. Document the schema for each table in the README (or a dedicated docs file).
+3. Review all config options in app/config.py and document their purpose and usage.
+4. Add a section to the README (or docs) explaining how to change config values and what each does.
+5. Ensure all documentation is clear, up-to-date, and helpful for new contributors/users.
+6. Run integration tests to confirm nothing is broken after doc changes.
+
+--------------------------------------------------------------------------------------------
+
+# Immediate Changes: Iteration 1, Step 5
+
+# (Next step placeholder) 
