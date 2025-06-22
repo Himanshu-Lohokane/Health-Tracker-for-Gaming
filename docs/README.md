@@ -55,12 +55,11 @@ python data/data_inserter_for_testing.py
 - All tests import from `app/main3.py` and `app/posture_detection.py`.
 - Data is stored in `health_tracker.db` (SQLite).
 - To reset your data, delete the `.db` file and restart the app.
+- **PostureDetector headless mode:**
+    - The `PostureDetector` class has a `headless` flag (default: `False`).
+    - In the main app, always use the default (`headless=False`) to enable GUI features (QImage/QPixmap for video display).
+    - In tests or headless environments, use `PostureDetector(headless=True)` to skip GUI object creation and avoid errors when no `QGuiApplication` is running.
+    - Only the integration test uses `headless=True`. All app code uses the default.
 
 ## 📚 Documentation
-- See `docs/` for detailed logs, improvement history, and more.
-
-## 💡 Contributing
-PRs and suggestions are welcome! Please open an issue or submit a pull request.
-
----
-**Stay healthy, game smart!**
+- See `docs/`
