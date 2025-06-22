@@ -57,15 +57,15 @@
 
 # Immediate Changes: Iteration 1, Step 4
 
-## Document the data schema and config options
+## ~~Document the data schema and config options~~
 
-### Sub-steps:
-1. Review all database tables and their fields (health_logs, user_settings, user_points, detailed_logs).
-2. Document the schema for each table in the README (or a dedicated docs file).
-3. Review all config options in app/config.py and document their purpose and usage.
-4. Add a section to the README (or docs) explaining how to change config values and what each does.
-5. Ensure all documentation is clear, up-to-date, and helpful for new contributors/users.
-6. Run integration tests to confirm nothing is broken after doc changes.
+### ~~Sub-steps:~~
+~~1. Review all database tables and their fields (health_logs, user_settings, user_points, detailed_logs).~~
+~~2. Document the schema for each table in the README (or a dedicated docs file).~~
+~~3. Review all config options in app/config.py and document their purpose and usage.~~
+~~4. Add a section to the README (or docs) explaining how to change config values and what each does.~~
+~~5. Ensure all documentation is clear, up-to-date, and helpful for new contributors/users.~~
+~~6. Run integration tests to confirm nothing is broken after doc changes.~~
 
 --------------------------------------------------------------------------------------------
 

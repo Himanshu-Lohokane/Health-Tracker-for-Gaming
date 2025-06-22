@@ -61,5 +61,58 @@ python data/data_inserter_for_testing.py
     - In tests or headless environments, use `PostureDetector(headless=True)` to skip GUI object creation and avoid errors when no `QGuiApplication` is running.
     - Only the integration test uses `headless=True`. All app code uses the default.
 
+## 🗄️ Database Schema & Config Options
+
+### Database Tables
+
+**health_logs**
+| Field      | Type    | Description                |
+|------------|---------|----------------------------|
+| id         | INTEGER | Primary key                |
+| timestamp  | TEXT    | Log timestamp              |
+| action     | TEXT    | Action/description         |
+
+**user_settings**
+| Field              | Type    | Description                        |
+|--------------------|---------|------------------------------------|
+| id                 | INTEGER | Primary key                        |
+| hydration_interval | INTEGER | Hydration reminder interval (min)  |
+| break_interval     | INTEGER | Break reminder interval (min)      |
+
+**user_points**
+| Field  | Type    | Description         |
+|--------|---------|---------------------|
+| id     | INTEGER | Primary key         |
+| points | INTEGER | User's health points|
+
+**detailed_logs**
+| Field            | Type    | Description                                 |
+|------------------|---------|---------------------------------------------|
+| id               | INTEGER | Primary key                                 |
+| timestamp        | TEXT    | Log timestamp                               |
+| action           | TEXT    | Action/description                          |
+| posture_status   | TEXT    | Posture feedback (e.g., Good, Bad, etc.)    |
+| back_angle       | REAL    | Back angle (degrees)                        |
+| water_intake     | INTEGER | Water intake event (1=reminder sent)        |
+| break_taken      | INTEGER | Break event (1=reminder sent)               |
+| activity         | TEXT    | Activity type (e.g., Gaming, Testing)       |
+| forward_lean     | REAL    | Forward lean metric                         |
+| shoulder_alignment| REAL   | Shoulder alignment metric                   |
+| session_status   | TEXT    | Session status (Running, Stopped, etc.)     |
+| game             | TEXT    | Game/process name                           |
+
+### Config Options (app/config.py)
+
+| Name                    | Default | Description                                      |
+|-------------------------|---------|--------------------------------------------------|
+| DEFAULT_HYDRATION_INTERVAL | 15      | Hydration reminder interval (minutes)             |
+| DEFAULT_BREAK_INTERVAL     | 30      | Break reminder interval (minutes)                 |
+| POSTURE_BUFFER_SIZE        | 30      | Number of posture feedbacks to aggregate          |
+| MOTION_THRESHOLD           | 50      | Fallback movement threshold for posture detection |
+
+**To change config values:**
+- Edit `app/config.py` and adjust the constants as needed.
+- Restart the app for changes to take effect.
+
 ## 📚 Documentation
 - See `docs/`
