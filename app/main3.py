@@ -19,6 +19,11 @@ from plyer import notification
 from win10toast import ToastNotifier
 import matplotlib.pyplot as plt
 
+try:
+    from app.config import DEFAULT_HYDRATION_INTERVAL, DEFAULT_BREAK_INTERVAL
+except ImportError:
+    from config import DEFAULT_HYDRATION_INTERVAL, DEFAULT_BREAK_INTERVAL
+
 from posture_detection import PostureDetector
 
 # Database setup
@@ -51,7 +56,7 @@ def setup_database():
                             session_status TEXT,
                             game TEXT)''')
             c.execute('''INSERT OR IGNORE INTO user_settings (id, hydration_interval, break_interval)
-                         VALUES (1, 15, 30)''')
+                         VALUES (1, ?, ?)''', (DEFAULT_HYDRATION_INTERVAL, DEFAULT_BREAK_INTERVAL))
             c.execute('''INSERT OR IGNORE INTO user_points (id, points)
                          VALUES (1, 0)''')
             conn.commit()
@@ -144,7 +149,7 @@ class ReminderWorker(QThread):
                 hydration_interval, break_interval = c.fetchone()
         except sqlite3.Error as e:
             print(f"Database error: {e}")
-            hydration_interval, break_interval = 15, 30
+            hydration_interval, break_interval = DEFAULT_HYDRATION_INTERVAL, DEFAULT_BREAK_INTERVAL
 
         hydration_interval *= 60
         break_interval *= 60
@@ -235,8 +240,8 @@ class SettingsDialog(QDialog):
         
     def save_settings(self):
         try:
-            hydration = int(self.hydration_entry.text()) if self.hydration_entry.text() else 15
-            break_time = int(self.break_entry.text()) if self.break_entry.text() else 30
+            hydration = int(self.hydration_entry.text()) if self.hydration_entry.text() else DEFAULT_HYDRATION_INTERVAL
+            break_time = int(self.break_entry.text()) if self.break_entry.text() else DEFAULT_BREAK_INTERVAL
             
             try:
                 with sqlite3.connect("health_tracker.db") as conn:

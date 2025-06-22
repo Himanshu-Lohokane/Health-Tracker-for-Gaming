@@ -3,12 +3,16 @@ import numpy as np
 from PyQt6.QtGui import QImage, QPixmap
 from collections import deque
 from statistics import mode
+try:
+    from app.config import POSTURE_BUFFER_SIZE, MOTION_THRESHOLD
+except ImportError:
+    from config import POSTURE_BUFFER_SIZE, MOTION_THRESHOLD
 
 class PostureDetector:
     def __init__(self, headless=False):
         self.cap = None
         self.current_feedback = "No posture data"
-        self.posture_buffer = deque(maxlen=30)
+        self.posture_buffer = deque(maxlen=POSTURE_BUFFER_SIZE)
         self.mediapipe_available = False
         self.headless = headless
 
@@ -24,9 +28,9 @@ class PostureDetector:
             print("Running in fallback mode without pose detection")
 
         # Fallback mode parameters
-        self.motion_threshold = 50
+        self.motion_threshold = MOTION_THRESHOLD
         self.prev_frame = None
-        self.movement_buffer = deque(maxlen=30)
+        self.movement_buffer = deque(maxlen=POSTURE_BUFFER_SIZE)
 
     def initialize_camera(self):
         try:
