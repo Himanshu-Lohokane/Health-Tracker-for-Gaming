@@ -69,6 +69,22 @@
 
 --------------------------------------------------------------------------------------------
 
+# Immediate Changes: Iteration 1, Step 4.5
+
+## Audit and align collected data with expected/needed data
+
+### Sub-steps:
+1. Clear the current database and logs to start fresh.
+2. Run main3.py and interact with the app to generate new data.
+3. Review what data is actually being collected and logged (fields, values, frequency, etc.).
+4. Compare actual collected data with what is expected/needed for analysis, ML, and user feedback.
+5. Identify and document all mismatches, missing fields, or irrelevant/noisy data.
+6. Update data logging, posture detection, and event tracking to ensure all required data is collected, and only useful data is stored.
+7. Test the app and confirm the new data matches expectations.
+8. Update documentation and README if needed.
+
+--------------------------------------------------------------------------------------------
+
 # Immediate Changes: Iteration 1, Step 5
 
 # (Next step placeholder) 
