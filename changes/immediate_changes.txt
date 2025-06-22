@@ -1,13 +1,39 @@
 # Immediate Changes: Iteration 1, Step 1
 
-## Create a requirements.txt and test a clean install
+## ~~Create a requirements.txt and test a clean install~~
+
+### ~~Sub-steps:~~
+~~1. List all Python dependencies used in the project (PyQt6, mediapipe, matplotlib, etc.)~~
+~~2. Create a requirements.txt file in the root directory~~
+~~3. Test installation in a fresh virtual environment:~~
+   ~~ - Create a new venv~~
+   ~~ - Run `pip install -r requirements.txt`~~
+   ~~ - Run `python app/main3.py` to ensure the app starts~~
+   ~~ - Run `python tests/integration_test.py` to ensure tests pass~~
+~~4. Update README with installation instructions if needed~~
+
+---
+
+## Move all hardcoded values to a config/settings file
 
 ### Sub-steps:
-1. List all Python dependencies used in the project (PyQt6, mediapipe, matplotlib, etc.)
-2. Create a requirements.txt file in the root directory
-3. Test installation in a fresh virtual environment:
-   - Create a new venv
-   - Run `pip install -r requirements.txt`
-   - Run `python app/main3.py` to ensure the app starts
-   - Run `python tests/integration_test.py` to ensure tests pass
-4. Update README with installation instructions if needed 
+1. Identify all hardcoded values, thresholds, and parameters in the codebase (app/).
+2. Create a config.py file in app/ and move these values there as constants.
+3. Update all code to import and use these config values instead of hardcoded numbers.
+4. Ensure robust imports for config in all modules (support both script and package usage).
+5. Run all tests and main app to confirm nothing is broken.
+6. Update README/Developer Notes to mention config usage and how to change settings.
+
+--------------------------------------------------------------------------------------------
+
+# Immediate Changes: Iteration 1, Step 2
+
+## Add user feedback for missing dependencies (MediaPipe, camera)
+
+### Sub-steps:
+1. Audit all imports and initialization for MediaPipe and camera usage in the app (especially posture_detection.py and main3.py).
+2. Add user-friendly error dialogs or console messages if MediaPipe is missing or fails to load.
+3. Add user-friendly error dialogs or console messages if the camera is missing, busy, or fails to initialize.
+4. Ensure all such errors are logged and do not crash the app; provide actionable suggestions to the user.
+5. Test by simulating missing dependencies and camera access issues.
+6. Update README with troubleshooting tips for these errors. 

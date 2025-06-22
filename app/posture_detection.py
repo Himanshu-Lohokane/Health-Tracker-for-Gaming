@@ -3,6 +3,8 @@ import numpy as np
 from PyQt6.QtGui import QImage, QPixmap
 from collections import deque
 from statistics import mode
+import sys
+from PyQt6.QtWidgets import QMessageBox
 try:
     from app.config import POSTURE_BUFFER_SIZE, MOTION_THRESHOLD
 except ImportError:
@@ -24,7 +26,10 @@ class PostureDetector:
             self.mp_drawing = mp.solutions.drawing_utils
             self.mediapipe_available = True
         except ImportError as e:
-            print(f"MediaPipe import error: {e}")
+            msg = f"MediaPipe import error: {e}\nPosture detection will be limited. Please install mediapipe with 'pip install mediapipe'."
+            if not self.headless:
+                self._show_error_dialog("MediaPipe Not Found", msg)
+            print(msg)
             print("Running in fallback mode without pose detection")
 
         # Fallback mode parameters
@@ -32,15 +37,29 @@ class PostureDetector:
         self.prev_frame = None
         self.movement_buffer = deque(maxlen=POSTURE_BUFFER_SIZE)
 
+    def _show_error_dialog(self, title, message):
+        try:
+            QMessageBox.critical(None, title, message)
+        except Exception as e:
+            print(f"[Dialog Error] {title}: {message} (QMessageBox failed: {e})")
+
     def initialize_camera(self):
         try:
             self.cap = cv2.VideoCapture(0)
             if not self.cap.isOpened():
-                print("Error: Could not open camera.")
+                msg = ("Error: Could not open camera.\n" 
+                       "Possible reasons: camera not connected, in use by another app, or driver issue.\n"
+                       "Try closing other camera apps, reconnecting your webcam, or restarting your computer.")
+                if not self.headless:
+                    self._show_error_dialog("Camera Initialization Failed", msg)
+                print(msg)
                 return False
             return True
         except Exception as e:
-            print(f"Camera initialization error: {e}")
+            msg = f"Camera initialization error: {e}\nTry checking your camera connection or drivers."
+            if not self.headless:
+                self._show_error_dialog("Camera Initialization Error", msg)
+            print(msg)
             return False
 
     def calculate_movement(self, frame):

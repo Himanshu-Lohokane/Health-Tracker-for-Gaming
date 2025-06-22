@@ -12,6 +12,9 @@ import sqlite3
 import time
 from datetime import datetime
 import psutil
+import builtins
+import io
+import contextlib
 
 # Import from app
 from main3 import setup_database, log_action, log_posture_data, is_game_running
@@ -287,11 +290,65 @@ def test_export_functionality():
         print(f"❌ Export functionality test failed: {e}")
         return False
 
+def test_missing_mediapipe():
+    """Simulate missing MediaPipe and check for user-friendly error"""
+    print("\n🔍 Testing Missing MediaPipe Handling...")
+    import importlib
+    import sys
+    orig_import = builtins.__import__
+    def fake_import(name, *args, **kwargs):
+        if name == "mediapipe":
+            raise ImportError("No module named 'mediapipe'")
+        return orig_import(name, *args, **kwargs)
+    builtins.__import__ = fake_import
+    f = io.StringIO()
+    with contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
+        detector = None
+        try:
+            detector = PostureDetector(headless=True)
+            assert not detector.mediapipe_available
+        except Exception as e:
+            print(f"Exception during missing mediapipe test: {e}")
+        finally:
+            builtins.__import__ = orig_import
+            if detector:
+                detector.release()
+    output = f.getvalue()
+    print(output)
+    assert "MediaPipe import error" in output or "No module named 'mediapipe'" in output
+    print("✅ Missing MediaPipe error handling PASSED")
+
+def test_camera_failure():
+    """Simulate camera failure and check for user-friendly error"""
+    print("\n🔍 Testing Camera Failure Handling...")
+    import cv2
+    orig_videocapture = cv2.VideoCapture
+    class FakeCapture:
+        def isOpened(self): return False
+        def release(self): pass
+    cv2.VideoCapture = lambda *a, **kw: FakeCapture()
+    f = io.StringIO()
+    with contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
+        detector = None
+        try:
+            detector = PostureDetector(headless=True)
+            result = detector.initialize_camera()
+            assert not result
+        except Exception as e:
+            print(f"Exception during camera failure test: {e}")
+        finally:
+            cv2.VideoCapture = orig_videocapture
+            if detector:
+                detector.release()
+    output = f.getvalue()
+    print(output)
+    assert "Could not open camera" in output or "Camera initialization error" in output
+    print("✅ Camera failure error handling PASSED")
+
 def main():
     setup_database()  # Ensure DB is initialized before tests
     print("🧪 HEALTH TRACKER INTEGRATION TEST")
     print("=" * 60)
-    
     tests = [
         ("Database Integration", test_database_integration),
         ("Logging Functions", test_logging_functions),
@@ -299,23 +356,24 @@ def main():
         ("Posture Detection Module", test_posture_detection_import),
         ("Data Validation", test_data_validation),
         ("Database Performance", test_database_performance),
-        ("Export Functionality", test_export_functionality)
+        ("Export Functionality", test_export_functionality),
+        ("Missing MediaPipe Handling", test_missing_mediapipe),
+        ("Camera Failure Handling", test_camera_failure)
     ]
-    
     passed = 0
     total = len(tests)
-    
     for test_name, test_func in tests:
         print(f"\n{'='*20} {test_name} {'='*20}")
-        if test_func():
-            passed += 1
-            print(f"✅ {test_name} PASSED")
-        else:
-            print(f"❌ {test_name} FAILED")
-    
+        try:
+            if test_func():
+                passed += 1
+                print(f"✅ {test_name} PASSED")
+            else:
+                print(f"❌ {test_name} FAILED")
+        except Exception as e:
+            print(f"❌ {test_name} FAILED with exception: {e}")
     print("\n" + "=" * 60)
     print(f"📊 INTEGRATION TEST RESULTS: {passed}/{total} tests passed")
-    
     if passed == total:
         print("🎉 ALL INTEGRATION TESTS PASSED!")
         print("🚀 Application is ready for production use")
@@ -323,7 +381,6 @@ def main():
         print("✅ MOST TESTS PASSED - Application is mostly functional")
     else:
         print("⚠️  MANY TESTS FAILED - Application needs attention")
-    
     return passed == total
 
 if __name__ == "__main__":
