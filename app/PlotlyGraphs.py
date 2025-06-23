@@ -76,25 +76,31 @@ class HealthInsightsVisualizer:
             ],
             subplot_titles=(
                 "",  # Empty for top insights
-                "Posture Distribution",
-                "Game Performance Intensity",
-                "Forward Lean Over Time",
-                "Detailed Posture Analysis",
-                "Back Angle Over Time",
-                "Shoulder Alignment Over Time",
-                "Hourly Gaming Intensity",
-                "Longest Good Posture Streak"
+                "🎯 Posture Distribution",
+                "🎮 Game Performance Intensity",
+                "📈 Forward Lean Trend",
+                "📊 Game Comparison",
+                "📐 Back Angle Trend",
+                "👤 Shoulder Alignment",
+                "⏰ Hourly Risk Pattern",
+                "🏆 Best Posture Streaks"
             ),
-            vertical_spacing=0.08,
-            horizontal_spacing=0.1
+            vertical_spacing=0.12,
+            horizontal_spacing=0.15
         )
-        color_palette = px.colors.qualitative.Pastel
+        color_palette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
         
-        # Top 3 Insights annotation (global)
+        # Top 3 Insights - plain text annotation (no HTML)
+        insights_text = (
+            "<b>Top 3 Insights</b><br>"
+            f"📊 <b>Posture Score:</b> <span style='color:#27ae60'>{good_pct:.1f}%</span><br>"
+            f"⚠️ <b>Risk Game:</b> <span style='color:#e74c3c'>{worst_game}</span><br>"
+            f"🏆 <b>Best Streak:</b> <span style='color:#27ae60'>{best_streak}</span> sessions"
+        )
         fig.add_annotation(
-            text="<b>Top 3 Insights</b><br>" + "<br>".join(insights),
-            x=0.5, y=0.98, xref="paper", yref="paper", showarrow=False,
-            font=dict(size=18, color="black"), align="center"
+            text=insights_text,
+            x=0.5, y=0.92, xref="paper", yref="paper", showarrow=False,
+            font=dict(size=16), align="center"
         )
         
         # 1. Posture Distribution (Pie) - Row 2, Col 1
@@ -103,8 +109,14 @@ class HealthInsightsVisualizer:
             go.Pie(
                 labels=posture_counts.index, 
                 values=posture_counts.values, 
-                hole=0.3, 
-                marker=dict(colors=["#90ee90" if l=="Good" else "#ff7f7f" for l in posture_counts.index])
+                hole=0.4, 
+                marker=dict(
+                    colors=["#2ecc71", "#e74c3c"],
+                    line=dict(color='white', width=3)
+                ),
+                textfont=dict(size=14, color='white'),
+                hovertemplate="<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>",
+                pull=[0.1 if label == 'Good' else 0 for label in posture_counts.index]
             ),
             row=2, col=1
         )
@@ -121,25 +133,48 @@ class HealthInsightsVisualizer:
                 z=game_posture_intensity.values,
                 x=game_posture_intensity.columns,
                 y=game_posture_intensity.index,
-                colorscale='Viridis', 
-                colorbar=dict(title="Avg. Risk Score", x=0.48)
+                colorscale='RdYlBu_r',
+                colorbar=dict(title=dict(text="Risk Score", font=dict(size=12)), x=0.48),
+                hovertemplate="Game: %{y}<br>Posture: %{x}<br>Risk Score: %{z:.2f}<extra></extra>"
             ),
             row=2, col=2
         )
         
         # 3. Forward Lean Over Time (Line) - Row 3, Col 1
         forward_lean_rolling = self.data['forward_lean'].rolling(window=10).mean()
-        fig.add_trace(
-            go.Scatter(
-                x=self.data['timestamp'],
-                y=forward_lean_rolling,
-                mode='lines',
-                line=dict(color='blue', width=2),
-                name='Forward Lean (Rolling Mean)'
-            ),
-            row=3, col=1
-        )
-        
+        if forward_lean_rolling.notna().sum() > 0:
+            fig.add_trace(
+                go.Scatter(
+                    x=self.data['timestamp'],
+                    y=forward_lean_rolling,
+                    mode='lines+markers',
+                    line=dict(color='#3498db', width=3),
+                    marker=dict(size=4, color='#2980b9'),
+                    name='Forward Lean',
+                    hovertemplate="Time: %{x}<br>Forward Lean: %{y:.3f}<extra></extra>",
+                    fill='tonexty'
+                ),
+                row=3, col=1
+            )
+            # Add threshold line for forward lean using add_shape
+            fig.add_shape(
+                type="line",
+                x0=self.data['timestamp'].min(), x1=self.data['timestamp'].max(),
+                y0=0.1, y1=0.1,
+                line=dict(color="red", dash="dash"),
+                xref="x3", yref="y3"
+            )
+            fig.add_annotation(
+                text="Risk Threshold",
+                x=self.data['timestamp'].max(),
+                y=0.1,
+                xref="x3", yref="y3",
+                showarrow=False,
+                font=dict(size=11, color="red"),
+                align="right",
+                xanchor="left",
+                yanchor="bottom"
+            )
         # 4. Detailed Posture Analysis (Box Plot for Games) - Row 3, Col 2
         unique_games = self.data['game'].unique()
         for i, game in enumerate(unique_games):
@@ -149,23 +184,48 @@ class HealthInsightsVisualizer:
                     y=game_data,
                     name=game,
                     marker_color=color_palette[i % len(color_palette)],
-                    showlegend=False
+                    showlegend=False,
+                    boxpoints='outliers',
+                    hovertemplate="Game: %{x}<br>Forward Lean: %{y:.3f}<extra></extra>"
                 ),
                 row=3, col=2
             )
         
         # 5. Back Angle Over Time (Line) - Row 4, Col 1
         back_angle_rolling = self.data['back_angle'].rolling(window=10).mean()
-        fig.add_trace(
-            go.Scatter(
-                x=self.data['timestamp'],
-                y=back_angle_rolling,
-                mode='lines',
-                line=dict(color='green', width=2),
-                name='Back Angle (Rolling Mean)'
-            ),
-            row=4, col=1
-        )
+        if back_angle_rolling.notna().sum() > 0:
+            fig.add_trace(
+                go.Scatter(
+                    x=self.data['timestamp'],
+                    y=back_angle_rolling,
+                    mode='lines+markers',
+                    line=dict(color='#27ae60', width=3),
+                    marker=dict(size=4, color='#229954'),
+                    name='Back Angle',
+                    hovertemplate="Time: %{x}<br>Back Angle: %{y:.1f}°<extra></extra>",
+                    fill='tonexty'
+                ),
+                row=4, col=1
+            )
+            # Add threshold line for back angle using add_shape
+            fig.add_shape(
+                type="line",
+                x0=self.data['timestamp'].min(), x1=self.data['timestamp'].max(),
+                y0=170, y1=170,
+                line=dict(color="orange", dash="dash"),
+                xref="x5", yref="y5"
+            )
+            fig.add_annotation(
+                text="Good Posture (170°+)",
+                x=self.data['timestamp'].max(),
+                y=170,
+                xref="x5", yref="y5",
+                showarrow=False,
+                font=dict(size=11, color="orange"),
+                align="right",
+                xanchor="left",
+                yanchor="bottom"
+            )
         
         # 6. Shoulder Alignment Over Time (Line) - Row 4, Col 2
         shoulder_angle_rolling = self.data['shoulder_alignment'].rolling(window=10).mean()
@@ -173,9 +233,12 @@ class HealthInsightsVisualizer:
             go.Scatter(
                 x=self.data['timestamp'],
                 y=shoulder_angle_rolling,
-                mode='lines',
-                line=dict(color='purple', width=2),
-                name='Shoulder Alignment (Rolling Mean)'
+                mode='lines+markers',
+                line=dict(color='#9b59b6', width=3),
+                marker=dict(size=4, color='#8e44ad'),
+                name='Shoulder Alignment',
+                hovertemplate="Time: %{x}<br>Shoulder Alignment: %{y:.3f}<extra></extra>",
+                fill='tonexty'
             ),
             row=4, col=2
         )
@@ -192,8 +255,9 @@ class HealthInsightsVisualizer:
                 z=hourly_intensity.values,
                 x=hourly_intensity.columns,
                 y=hourly_intensity.index,
-                colorscale='YlOrRd', 
-                colorbar=dict(title="Avg. Risk Score", x=0.48)
+                colorscale='Plasma',
+                colorbar=dict(title=dict(text="Risk Score", font=dict(size=12)), x=0.48),
+                hovertemplate="Day: %{y}<br>Hour: %{x}:00<br>Risk Score: %{z:.2f}<extra></extra>"
             ),
             row=5, col=1
         )
@@ -216,9 +280,14 @@ class HealthInsightsVisualizer:
             go.Bar(
                 x=list(unique_games),
                 y=streaks,
-                marker_color=color_palette[:len(unique_games)],
+                marker=dict(
+                    color=streaks,
+                    colorscale='Viridis',
+                    line=dict(color='white', width=2)
+                ),
                 name='Longest Good Posture Streak',
-                showlegend=False
+                showlegend=False,
+                hovertemplate="Game: %{x}<br>Longest Streak: %{y} sessions<extra></extra>"
             ),
             row=5, col=2
         )
