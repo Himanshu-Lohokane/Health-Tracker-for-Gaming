@@ -1,2 +1,5 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# HTML files (visualizations)
+advanced_gaming_health_insights.html
