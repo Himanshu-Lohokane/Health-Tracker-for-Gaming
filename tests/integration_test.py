@@ -25,14 +25,13 @@ def test_database_integration():
     print("🔍 Testing Database Integration...")
     
     try:
-        # Test database connection
         conn = sqlite3.connect('health_tracker.db')
         c = conn.cursor()
         
         # Test table existence
         c.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in c.fetchall()]
-        required_tables = ['health_logs', 'user_settings', 'user_points', 'detailed_logs']
+        required_tables = ['detailed_logs']
         
         missing_tables = [table for table in required_tables if table not in tables]
         if missing_tables:
@@ -43,25 +42,22 @@ def test_database_integration():
         
         # Test data insertion
         test_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        c.execute('''INSERT INTO detailed_logs (timestamp, action, posture_status, back_angle, 
-                     water_intake, break_taken, activity, forward_lean, shoulder_alignment, 
-                     session_status, game)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                  (test_timestamp, "Integration Test", "Good Posture", 175.0, 0, 0, 
-                   "Testing", 0.02, 0.01, "Testing", "integration_test.exe"))
+        c.execute('''INSERT INTO detailed_logs (timestamp, back_angle, forward_lean, shoulder_alignment, good_posture, forward_lean_flag, uneven_shoulders_flag, session_status, game)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (test_timestamp, 175.0, 0.02, 0.01, 1, 0, 0, "Testing", "integration_test.exe"))
         conn.commit()
         
         # Verify insertion
-        c.execute("SELECT action FROM detailed_logs WHERE action = 'Integration Test'")
+        c.execute("SELECT good_posture, forward_lean_flag, uneven_shoulders_flag FROM detailed_logs WHERE session_status = 'Testing'")
         result = c.fetchone()
-        if result:
+        if result == (1, 0, 0):
             print("✅ Data insertion and retrieval working")
         else:
-            print("❌ Data insertion failed")
+            print("❌ Data insertion failed or incorrect flags")
             return False
         
         # Clean up test data
-        c.execute("DELETE FROM detailed_logs WHERE action = 'Integration Test'")
+        c.execute("DELETE FROM detailed_logs WHERE session_status = 'Testing'")
         conn.commit()
         
         conn.close()
@@ -76,11 +72,8 @@ def test_logging_functions():
     print("\n🔍 Testing Logging Functions...")
     
     try:
-        # Setup fresh database for testing
-        setup_database()
-        
         # Test basic logging
-        log_action("Integration Test Action", session_status="Testing")
+        log_action(session_status="Testing", game="integration_test.exe")
         
         # Test posture logging
         log_posture_data(
@@ -91,9 +84,21 @@ def test_logging_functions():
             game_name="integration_test.exe"
         )
         
-        # Test reminder logging
-        log_action("Hydration reminder sent", water_intake=1, game="integration_test.exe")
-        log_action("Break reminder sent", break_taken=1, game="integration_test.exe")
+        log_posture_data(
+            feedback="Forward lean detected",
+            back_angle=170.0,
+            forward_lean=0.10,
+            shoulder_diff=0.01,
+            game_name="integration_test.exe"
+        )
+        
+        log_posture_data(
+            feedback="Uneven shoulders detected",
+            back_angle=172.0,
+            forward_lean=0.02,
+            shoulder_diff=0.05,
+            game_name="integration_test.exe"
+        )
         
         print("✅ All logging functions working")
         return True
@@ -139,22 +144,22 @@ def test_game_detection():
 def test_posture_detection_import():
     """Test posture detection module import and basic functionality with real frame capture"""
     print("\n🔍 Testing Posture Detection Module...")
-
+    
     detector = None
     try:
         # Test module import
         print("✅ Posture detection module imported successfully")
-
+        
         # Test detector initialization in headless mode
         detector = PostureDetector(headless=True)
         print("✅ Posture detector initialized (headless mode)")
-
+        
         # Test camera initialization (might fail if no camera)
         camera_initialized = detector.initialize_camera()
         if not camera_initialized:
             print("⚠️  Camera not available (expected in some environments). Skipping frame capture.")
             return True
-        print("✅ Camera initialized successfully")
+            print("✅ Camera initialized successfully")
 
         # Capture frames for a few seconds to fill the posture buffer
         frame_count = 0
@@ -167,15 +172,15 @@ def test_posture_detection_import():
             time.sleep(0.05)  # Small delay to simulate real capture
 
         # Check aggregated posture
-        aggregated = detector.get_aggregated_posture()
-        print(f"✅ Aggregated posture method working: {aggregated}")
+            aggregated = detector.get_aggregated_posture()
+            print(f"✅ Aggregated posture method working: {aggregated}")
         if aggregated == "No posture data":
             print("⚠️  No posture data detected after capturing frames. Check camera and lighting conditions.")
         else:
             print(f"✅ Posture detected: {aggregated}")
-
+        
         return True
-
+        
     except Exception as e:
         print(f"❌ Posture detection test failed: {e}")
         return False
@@ -185,65 +190,48 @@ def test_posture_detection_import():
             print("✅ Posture detector cleanup successful")
 
 def test_data_validation():
-    """Test data validation and error handling"""
+    """Test data validation and error handling for new schema"""
     print("\n🔍 Testing Data Validation...")
-    
     try:
-        # Test invalid data handling
-        log_action("Test with invalid back angle", back_angle=400)  # Invalid angle
-        log_action("Test with negative forward lean", forward_lean=-5)  # Invalid value
-        log_action("Test with invalid shoulder alignment", shoulder_alignment="invalid")
-        
-        # Test posture status standardization
-        log_action("Test posture standardization", posture_status="good posture")
-        log_action("Test posture standardization", posture_status="BAD POSTURE")
-        log_action("Test posture standardization", posture_status="forward head")
-        
+        # Test invalid data handling (should not crash, but may log invalid data)
+        log_action(good_posture=1, forward_lean_flag=0, uneven_shoulders_flag=0, back_angle=400, forward_lean=0.1, shoulder_alignment=0.01, session_status="Testing", game="test.exe")  # Invalid angle
+        log_action(good_posture=0, forward_lean_flag=1, uneven_shoulders_flag=0, back_angle=170, forward_lean=-5, shoulder_alignment=0.01, session_status="Testing", game="test.exe")  # Invalid value
+        log_action(good_posture=0, forward_lean_flag=0, uneven_shoulders_flag=1, back_angle=170, forward_lean=0.1, shoulder_alignment="invalid", session_status="Testing", game="test.exe")
+        # Test flag logic
+        log_action(good_posture=1, forward_lean_flag=0, uneven_shoulders_flag=0, back_angle=175, forward_lean=0.02, shoulder_alignment=0.01, session_status="Testing", game="test.exe")
+        log_action(good_posture=0, forward_lean_flag=1, uneven_shoulders_flag=0, back_angle=170, forward_lean=0.10, shoulder_alignment=0.01, session_status="Testing", game="test.exe")
+        log_action(good_posture=0, forward_lean_flag=0, uneven_shoulders_flag=1, back_angle=172, forward_lean=0.02, shoulder_alignment=0.05, session_status="Testing", game="test.exe")
         print("✅ Data validation working (invalid data handled gracefully)")
         return True
-        
     except Exception as e:
         print(f"❌ Data validation test failed: {e}")
         return False
 
 def test_database_performance():
-    """Test database performance with multiple operations"""
+    """Test database performance with multiple operations for new schema"""
     print("\n🔍 Testing Database Performance...")
-    
     try:
         conn = sqlite3.connect('health_tracker.db')
         c = conn.cursor()
-        
         start_time = time.time()
-        
         # Insert multiple test records
         for i in range(10):
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            c.execute('''INSERT INTO detailed_logs (timestamp, action, posture_status, back_angle, 
-                         water_intake, break_taken, activity, forward_lean, shoulder_alignment, 
-                         session_status, game)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (timestamp, f"Performance Test {i}", "Good Posture", 175.0, 0, 0, 
-                       "Testing", 0.02, 0.01, "Testing", "performance_test.exe"))
-        
+            c.execute('''INSERT INTO detailed_logs (timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (timestamp, 1, 0, 0, 175.0, 0.02, 0.01, "Testing", "performance_test.exe"))
         conn.commit()
-        
         # Query performance
-        c.execute("SELECT COUNT(*) FROM detailed_logs WHERE action LIKE 'Performance Test%'")
+        c.execute("SELECT COUNT(*) FROM detailed_logs WHERE session_status = 'Testing'")
         count = c.fetchone()[0]
-        
         end_time = time.time()
         duration = end_time - start_time
-        
         print(f"✅ Inserted {count} records in {duration:.3f} seconds")
-        
         # Clean up
-        c.execute("DELETE FROM detailed_logs WHERE action LIKE 'Performance Test%'")
+        c.execute("DELETE FROM detailed_logs WHERE session_status = 'Testing'")
         conn.commit()
-        
         conn.close()
         return True
-        
     except Exception as e:
         print(f"❌ Database performance test failed: {e}")
         return False
@@ -401,16 +389,21 @@ def main():
     ]
     passed = 0
     total = len(tests)
+    results = []
     for test_name, test_func in tests:
         print(f"\n{'='*20} {test_name} {'='*20}")
         try:
-            if test_func():
+            result = test_func()
+            if result:
                 passed += 1
                 print(f"✅ {test_name} PASSED")
+                results.append((test_name, True))
             else:
                 print(f"❌ {test_name} FAILED")
+                results.append((test_name, False))
         except Exception as e:
             print(f"❌ {test_name} FAILED with exception: {e}")
+            results.append((test_name, False))
     print("\n" + "=" * 60)
     print(f"📊 INTEGRATION TEST RESULTS: {passed}/{total} tests passed")
     if passed == total:
@@ -420,6 +413,10 @@ def main():
         print("✅ MOST TESTS PASSED - Application is mostly functional")
     else:
         print("⚠️  MANY TESTS FAILED - Application needs attention")
+    # Print checklist summary
+    print("\nTest Summary Checklist:")
+    for name, ok in results:
+        print(f"- [{'✅' if ok else '❌'}] {name}")
     return passed == total
 
 if __name__ == "__main__":

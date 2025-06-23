@@ -45,12 +45,10 @@ def setup_database():
             c.execute('''CREATE TABLE IF NOT EXISTS detailed_logs (
                             id INTEGER PRIMARY KEY,
                             timestamp TEXT,
-                            action TEXT,
-                            posture_status TEXT,
+                            good_posture INTEGER,
+                            forward_lean_flag INTEGER,
+                            uneven_shoulders_flag INTEGER,
                             back_angle REAL,
-                            water_intake INTEGER,
-                            break_taken INTEGER,
-                            activity TEXT,
                             forward_lean REAL,
                             shoulder_alignment REAL,
                             session_status TEXT,
@@ -64,17 +62,13 @@ def setup_database():
         print(f"Database error: {e}")
 
 # Insert log into database
-def log_action(action, posture_status=None, back_angle=None, water_intake=None, break_taken=None, 
-               activity=None, forward_lean=None, shoulder_alignment=None, session_status=None, game=None):
+def log_action(back_angle=None, forward_lean=None, shoulder_alignment=None, good_posture=None, forward_lean_flag=None, uneven_shoulders_flag=None, session_status=None, game=None):
     try:
         with sqlite3.connect("health_tracker.db") as conn:
             c = conn.cursor()
-            c.execute('''INSERT INTO detailed_logs (timestamp, action, posture_status, back_angle, 
-                         water_intake, break_taken, activity, forward_lean, shoulder_alignment, 
-                         session_status, game)
-                         VALUES (datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (action, posture_status, back_angle, water_intake, break_taken, activity, 
-                       forward_lean, shoulder_alignment, session_status, game))
+            c.execute('''INSERT INTO detailed_logs (timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game)
+                         VALUES (datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game))
             conn.commit()
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -177,7 +171,7 @@ class ReminderWorker(QThread):
                                         duration=10)
                     
                     self.notification_sent.emit(f"Hydration reminder sent", "hydration", game_running)
-                    log_action("Hydration reminder sent", water_intake=1, game=game_name)
+                    log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=1, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Running", game=game_name)
                     add_points(5)
                     last_hydration_reminder = current_time
 
@@ -193,7 +187,7 @@ class ReminderWorker(QThread):
                                         duration=10)
                     
                     self.notification_sent.emit(f"Break reminder sent", "break", game_running)
-                    log_action("Break reminder sent", break_taken=1, game=game_name)
+                    log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=0, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Running", game=game_name)
                     add_points(10)
                     last_break_reminder = current_time
 
@@ -621,13 +615,7 @@ class HealthTracker(QMainWindow):
         if current_time - self.last_log_time >= 30 and self.running:
             aggregated_posture = self.posture_detector.get_aggregated_posture()
             game_running, game_name = is_game_running()
-            log_action(f"Aggregated Posture: {aggregated_posture}", 
-                      posture_status=feedback, 
-                      back_angle=back_angle, 
-                      forward_lean=forward_lean, 
-                      shoulder_alignment=shoulder_diff, 
-                      session_status="Running", 
-                      game=game_name)
+            log_posture_data(aggregated_posture, back_angle, forward_lean, shoulder_diff, game_name)
             self.last_log_time = current_time
     
     def start_session(self):
@@ -635,14 +623,14 @@ class HealthTracker(QMainWindow):
             self.running = True
             self.start_time = time.time()
             self.timer.start(1000)  # Update every second
-            log_action("Session started", session_status="Started")
+            log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=1, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Started")
             self.update_logs()
     
     def stop_session(self):
         if self.running:
             self.running = False
             self.timer.stop()
-            log_action("Session stopped", session_status="Stopped")
+            log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=0, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Stopped")
             self.update_logs()
     
     def update_timer(self):
@@ -662,11 +650,11 @@ class HealthTracker(QMainWindow):
         try:
             with sqlite3.connect("health_tracker.db") as conn:
                 c = conn.cursor()
-                c.execute("SELECT timestamp, action FROM detailed_logs ORDER BY id DESC LIMIT 8")
+                c.execute("SELECT id, timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game FROM detailed_logs ORDER BY id DESC LIMIT 8")
                 rows = c.fetchall()
                 self.log_list.clear()
                 for row in rows:
-                    self.log_list.addItem(f"{row[0]} - {row[1]}")
+                    self.log_list.addItem(f"{row[0]} - Timestamp: {row[1]}, Good Posture: {row[2]}, Forward Lean Flag: {row[3]}, Uneven Shoulders Flag: {row[4]}, Back Angle: {row[5]}, Forward Lean: {row[6]}, Shoulder Alignment: {row[7]}, Session Status: {row[8]}, Game: {row[9]}")
         except sqlite3.Error as e:
             print(f"Database error: {e}")
     
@@ -687,7 +675,7 @@ class HealthTracker(QMainWindow):
         try:
             with sqlite3.connect("health_tracker.db") as conn:
                 c = conn.cursor()
-                c.execute("SELECT timestamp, action FROM detailed_logs")
+                c.execute("SELECT id, timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game FROM detailed_logs")
                 data = c.fetchall()
         except sqlite3.Error as e:
             print(f"Database error: {e}")
@@ -698,14 +686,22 @@ class HealthTracker(QMainWindow):
             return
 
         timestamps = [datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S") for row in data]
-        actions = [row[1] for row in data]
+        back_angles = [row[5] for row in data]
+        forward_leans = [row[6] for row in data]
+        shoulder_alignments = [row[7] for row in data]
+        good_postures = [row[2] for row in data]
+        forward_lean_flags = [row[3] for row in data]
+        uneven_shoulders_flags = [row[4] for row in data]
+        session_statuses = [row[8] for row in data]
+        games = [row[9] for row in data]
 
         plt.figure(figsize=(10, 5))
-        plt.plot(timestamps, [actions.count("Hydration reminder sent") for _ in range(len(timestamps))], label="Hydration")
-        plt.plot(timestamps, [actions.count("Break reminder sent") for _ in range(len(timestamps))], label="Breaks")
-        plt.title("Health Reminders Over Time")
+        plt.plot(timestamps, back_angles, label="Back Angle")
+        plt.plot(timestamps, forward_leans, label="Forward Lean")
+        plt.plot(timestamps, shoulder_alignments, label="Shoulder Alignment")
+        plt.title("Posture Data Over Time")
         plt.xlabel("Time")
-        plt.ylabel("Count")
+        plt.ylabel("Value")
         plt.legend()
         plt.tight_layout()
         plt.show()
@@ -749,9 +745,7 @@ class HealthTracker(QMainWindow):
     #     try:
     #         with open(filename, "w", newline="") as file:
     #             writer = csv.writer(file)
-    #             writer.writerow(["ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
-    #                            "Water Intake", "Break Taken", "Activity", "Forward Lean", 
-    #                            "Shoulder Alignment", "Session Status", "Game"])
+    #             writer.writerow(["ID", "Timestamp", "Back Angle", "Forward Lean", "Shoulder Alignment", "Good Posture", "Forward Lean Flag", "Uneven Shoulders Flag", "Session Status", "Game"])
     #             writer.writerows(rows)
     #         QMessageBox.information(self, "Export Success", f"Logs exported as {filename}")
     #     except Exception as e:
@@ -760,38 +754,31 @@ class HealthTracker(QMainWindow):
 # Enhanced posture logging function
 def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_name=None):
     """
-    Log posture data with proper validation and standardization.
-    
-    Args:
-        feedback (str): Posture feedback from detector (can be aggregated)
-        back_angle (float): Back angle measurement
-        forward_lean (float): Forward lean measurement  
-        shoulder_diff (float): Shoulder alignment difference
-        game_name (str): Current game name
+    Log posture data with new flag columns.
     """
-    # Standardize posture status based on feedback
-    posture_status = "Unknown Posture"
+    # Default all flags to 0
+    good_posture = 0
+    forward_lean_flag = 0
+    uneven_shoulders_flag = 0
     if feedback:
         feedback_lower = feedback.lower()
         if "good" in feedback_lower:
-            posture_status = "Good Posture"
-        elif any(word in feedback_lower for word in ["bad", "slouch", "uneven", "lean"]):
-            posture_status = "Slouching"
-        elif "forward" in feedback_lower:
-            posture_status = "Forward Head Posture"
-        else:
-            posture_status = "Unknown Posture"
-    
-    # Create action message indicating this is aggregated data
-    action_message = f"Aggregated Posture: {posture_status}"
-    
-    # Log the posture data
+            good_posture = 1
+        if "forward" in feedback_lower:
+            forward_lean_flag = 1
+        if "uneven" in feedback_lower or "shoulder" in feedback_lower:
+            uneven_shoulders_flag = 1
+    # If good posture, override others
+    if good_posture:
+        forward_lean_flag = 0
+        uneven_shoulders_flag = 0
     log_action(
-        action=action_message,
-        posture_status=posture_status,
         back_angle=back_angle,
         forward_lean=forward_lean,
         shoulder_alignment=shoulder_diff,
+        good_posture=good_posture,
+        forward_lean_flag=forward_lean_flag,
+        uneven_shoulders_flag=uneven_shoulders_flag,
         session_status="Running",
         game=game_name
     )

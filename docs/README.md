@@ -86,20 +86,20 @@ python data/data_inserter_for_testing.py
 | points | INTEGER | User's health points|
 
 **detailed_logs**
-| Field            | Type    | Description                                 |
-|------------------|---------|---------------------------------------------|
-| id               | INTEGER | Primary key                                 |
-| timestamp        | TEXT    | Log timestamp                               |
-| action           | TEXT    | Action/description                          |
-| posture_status   | TEXT    | Posture feedback (e.g., Good, Bad, etc.)    |
-| back_angle       | REAL    | Back angle (degrees)                        |
-| water_intake     | INTEGER | Water intake event (1=reminder sent)        |
-| break_taken      | INTEGER | Break event (1=reminder sent)               |
-| activity         | TEXT    | Activity type (e.g., Gaming, Testing)       |
-| forward_lean     | REAL    | Forward lean metric                         |
-| shoulder_alignment| REAL   | Shoulder alignment metric                   |
-| session_status   | TEXT    | Session status (Running, Stopped, etc.)     |
-| game             | TEXT    | Game/process name                           |
+| Field                | Type    | Description                                 |
+|----------------------|---------|---------------------------------------------|
+| id                   | INTEGER | Primary key                                 |
+| timestamp            | TEXT    | Log timestamp                               |
+| good_posture         | INTEGER | 1 if posture is good, else 0                |
+| forward_lean_flag    | INTEGER | 1 if forward lean detected, else 0           |
+| uneven_shoulders_flag| INTEGER | 1 if uneven shoulders detected, else 0       |
+| back_angle           | REAL    | Back angle (degrees)                        |
+| forward_lean         | REAL    | Forward lean value                          |
+| shoulder_alignment   | REAL    | Shoulder alignment value                    |
+| session_status       | TEXT    | Session status (Started, Running, Stopped)  |
+| game                 | TEXT    | Game/process name                           |
+
+*All logging, UI, and tests now use this schema and order. Legacy columns are removed.*
 
 ### Config Options (app/config.py)
 
@@ -116,3 +116,31 @@ python data/data_inserter_for_testing.py
 
 ## 📚 Documentation
 - See `docs/`
+
+## Logging Schema (2025-06)
+
+detailed_logs table columns (in order):
+1. id
+2. timestamp
+3. good_posture (0/1)
+4. forward_lean_flag (0/1)
+5. uneven_shoulders_flag (0/1)
+6. back_angle (float)
+7. forward_lean (float)
+8. shoulder_alignment (float)
+9. session_status (text)
+10. game (text)
+
+- All posture logs are now structured with these flags.
+- No more text-based posture status or action columns.
+- All code, UI, and exports use this order.
+
+## Posture Flag Meanings
+- good_posture: 1 if posture is good, else 0
+- forward_lean_flag: 1 if forward lean detected, else 0
+- uneven_shoulders_flag: 1 if uneven shoulders detected, else 0
+
+## Refactor Summary
+- Database and all code now use only these columns.
+- All legacy columns and logic removed.
+- Integration and logging tests updated.
