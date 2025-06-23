@@ -1,6 +1,48 @@
 # Health Tracker for Gaming
 
-A modern desktop application to help gamers maintain healthy habits by tracking posture, hydration, and break reminders, with real-time posture detection, game awareness, and insightful visualizations.
+A modular, database-driven health tracking system for gamers, featuring posture detection, game detection, reminders, ML analysis, and advanced analytics dashboards.
+
+## Features
+- Real-time posture and session logging to SQLite database
+- Modular codebase with robust schema: `id, timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game`
+- Interactive Plotly dashboard with:
+  - Posture distribution
+  - Game performance intensity
+  - Forward lean, back angle, and shoulder alignment trends
+  - Hourly gaming intensity
+  - Longest good posture streak per game
+- Tkinter GUI for viewing logs in a scrollable table
+- Comprehensive test suite
+
+## Setup
+1. Clone the repo and install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. (Optional) Delete `health_tracker.db` for a fresh start.
+
+## Usage
+- **Run the main app:**
+  ```bash
+  python app/main3.py
+  ```
+- **Generate the analytics dashboard:**
+  ```bash
+  python app/PlotlyGraphs.py
+  ```
+  This will create and open `advanced_gaming_health_insights.html`.
+- **View logs in a GUI:**
+  ```bash
+  python display_db/gui_display.py
+  ```
+
+## Contributing
+- Ensure all code and tests use the new schema.
+- Run and update tests in `tests/` as needed.
+- See `.gitignore` for files to exclude from version control.
+
+## License
+MIT
 
 ## 🚀 Features
 - Real-time posture detection using webcam (MediaPipe)
