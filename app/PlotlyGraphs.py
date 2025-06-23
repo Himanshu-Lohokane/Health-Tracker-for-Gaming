@@ -66,16 +66,16 @@ class HealthInsightsVisualizer:
         insights.append(f"Longest good posture streak: {best_streak} sessions")
 
         fig = make_subplots(
-            rows=5, cols=3,
+            rows=5, cols=2,
             specs=[
-                [{'colspan': 3}, None, None],  # Top 3 Insights annotation
-                [{'type': 'domain'}, {'type': 'xy'}, None],
-                [{'type': 'box'}, {'type': 'heatmap'}, None],
-                [{'type': 'xy'}, {'type': 'xy'}, None],
-                [{'type': 'xy'}, {'type': 'xy'}, None]
+                [{'colspan': 2}, None],  # Top 3 Insights annotation
+                [{'type': 'domain'}, {'type': 'heatmap'}],  # Posture pie + Game intensity heatmap
+                [{'type': 'xy'}, {'type': 'box'}],  # Forward lean line + Game box plots
+                [{'type': 'xy'}, {'type': 'xy'}],  # Back angle + Shoulder alignment
+                [{'type': 'heatmap'}, {'type': 'xy'}]  # Hourly heatmap + Streak bars
             ],
             subplot_titles=(
-                "Top 3 Insights",
+                "",  # Empty for top insights
                 "Posture Distribution",
                 "Game Performance Intensity",
                 "Forward Lean Over Time",
@@ -84,24 +84,32 @@ class HealthInsightsVisualizer:
                 "Shoulder Alignment Over Time",
                 "Hourly Gaming Intensity",
                 "Longest Good Posture Streak"
-            )
+            ),
+            vertical_spacing=0.08,
+            horizontal_spacing=0.1
         )
         color_palette = px.colors.qualitative.Pastel
-        # Top 3 Insights annotation
+        
+        # Top 3 Insights annotation (global)
         fig.add_annotation(
             text="<b>Top 3 Insights</b><br>" + "<br>".join(insights),
-            xref="paper", yref="paper",
-            x=0.5, y=1.15, showarrow=False, font=dict(size=18, color="black"),
-            align="center", bordercolor="black", borderwidth=1, bgcolor="#f0f8ff"
+            x=0.5, y=0.98, xref="paper", yref="paper", showarrow=False,
+            font=dict(size=18, color="black"), align="center"
         )
-        # 1. Posture Distribution (Pie)
+        
+        # 1. Posture Distribution (Pie) - Row 2, Col 1
         posture_counts = self.data['good_posture'].replace({1: 'Good', 0: 'Bad'}).value_counts()
         fig.add_trace(
-            go.Pie(labels=posture_counts.index, values=posture_counts.values, hole=0.3, marker=dict(colors=["#90ee90" if l=="Good" else "#ff7f7f" for l in posture_counts.index])),
+            go.Pie(
+                labels=posture_counts.index, 
+                values=posture_counts.values, 
+                hole=0.3, 
+                marker=dict(colors=["#90ee90" if l=="Good" else "#ff7f7f" for l in posture_counts.index])
+            ),
             row=2, col=1
         )
-        fig.add_annotation(text="Green = Good posture, Red = Bad posture", x=0.15, y=0.85, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 2. Game Performance Intensity (Heatmap)
+        
+        # 2. Game Performance Intensity (Heatmap) - Row 2, Col 2
         game_posture_intensity = pd.crosstab(
             self.data['game'],
             self.data['good_posture'].replace({1: 'Good', 0: 'Bad'}),
@@ -113,13 +121,13 @@ class HealthInsightsVisualizer:
                 z=game_posture_intensity.values,
                 x=game_posture_intensity.columns,
                 y=game_posture_intensity.index,
-                colorscale='Viridis',
-                colorbar=dict(title="Avg. Risk Score")
+                colorscale='Viridis', 
+                colorbar=dict(title="Avg. Risk Score", x=0.48)
             ),
             row=2, col=2
         )
-        fig.add_annotation(text="Darker = higher posture risk for that game", x=0.55, y=0.85, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 3. Forward Lean Over Time (Line)
+        
+        # 3. Forward Lean Over Time (Line) - Row 3, Col 1
         forward_lean_rolling = self.data['forward_lean'].rolling(window=10).mean()
         fig.add_trace(
             go.Scatter(
@@ -131,22 +139,22 @@ class HealthInsightsVisualizer:
             ),
             row=3, col=1
         )
-        fig.add_annotation(text="Lower is better. Spikes = slouching.", x=0.15, y=0.65, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 4. Detailed Posture Analysis (Box Plot for Games)
-        game_forward_lean = []
+        
+        # 4. Detailed Posture Analysis (Box Plot for Games) - Row 3, Col 2
         unique_games = self.data['game'].unique()
         for i, game in enumerate(unique_games):
             game_data = self.data[self.data['game'] == game]['forward_lean']
-            game_forward_lean.append(
+            fig.add_trace(
                 go.Box(
                     y=game_data,
                     name=game,
-                    marker_color=color_palette[i % len(color_palette)]
-                )
+                    marker_color=color_palette[i % len(color_palette)],
+                    showlegend=False
+                ),
+                row=3, col=2
             )
-        for box in game_forward_lean:
-            fig.add_trace(box, row=3, col=2)
-        # 5. Back Angle Over Time (Line)
+        
+        # 5. Back Angle Over Time (Line) - Row 4, Col 1
         back_angle_rolling = self.data['back_angle'].rolling(window=10).mean()
         fig.add_trace(
             go.Scatter(
@@ -158,8 +166,8 @@ class HealthInsightsVisualizer:
             ),
             row=4, col=1
         )
-        fig.add_annotation(text="Aim for >170°. Lower = slouching.", x=0.15, y=0.45, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 6. Shoulder Alignment Over Time (Line)
+        
+        # 6. Shoulder Alignment Over Time (Line) - Row 4, Col 2
         shoulder_angle_rolling = self.data['shoulder_alignment'].rolling(window=10).mean()
         fig.add_trace(
             go.Scatter(
@@ -171,8 +179,8 @@ class HealthInsightsVisualizer:
             ),
             row=4, col=2
         )
-        fig.add_annotation(text="Fluctuations = uneven shoulders.", x=0.55, y=0.45, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 7. Hourly Gaming Intensity (Heatmap)
+        
+        # 7. Hourly Gaming Intensity (Heatmap) - Row 5, Col 1
         hourly_intensity = self.data.pivot_table(
             index='Day',
             columns='Hour',
@@ -184,13 +192,13 @@ class HealthInsightsVisualizer:
                 z=hourly_intensity.values,
                 x=hourly_intensity.columns,
                 y=hourly_intensity.index,
-                colorscale='YlOrRd',
-                colorbar=dict(title="Avg. Risk Score")
+                colorscale='YlOrRd', 
+                colorbar=dict(title="Avg. Risk Score", x=0.48)
             ),
             row=5, col=1
         )
-        fig.add_annotation(text="Red = higher risk. See which hours are worst.", x=0.15, y=0.25, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
-        # 8. Longest Good Posture Streak (Bar)
+        
+        # 8. Longest Good Posture Streak (Bar) - Row 5, Col 2
         streaks = []
         for game in unique_games:
             game_data = self.data[self.data['game'] == game]['good_posture']
@@ -203,34 +211,75 @@ class HealthInsightsVisualizer:
                 else:
                     current_streak = 0
             streaks.append(max_streak)
+        
         fig.add_trace(
             go.Bar(
                 x=list(unique_games),
                 y=streaks,
                 marker_color=color_palette[:len(unique_games)],
-                name='Longest Good Posture Streak'
+                name='Longest Good Posture Streak',
+                showlegend=False
             ),
             row=5, col=2
         )
-        fig.add_annotation(text="Higher = better. Shows consistency.", x=0.55, y=0.25, xref="paper", yref="paper", showarrow=False, font=dict(size=12, color="gray"))
+        
+        # Add helpful annotations for each chart
+        annotations = [
+            # Row 2 annotations
+            (0.18, 0.82, "Green = Good, Red = Bad posture"),
+            (0.82, 0.82, "Darker = higher posture risk"),
+            # Row 3 annotations  
+            (0.18, 0.68, "Lower is better. Spikes = slouching."),
+            (0.82, 0.68, "Compare posture by game."),
+            # Row 4 annotations
+            (0.18, 0.54, "Aim for >170°. Lower = slouching."),
+            (0.82, 0.54, "Fluctuations = uneven shoulders."),
+            # Row 5 annotations
+            (0.18, 0.40, "Red = higher risk. See which hours are worst."),
+            (0.82, 0.40, "Higher = better. Shows consistency.")
+        ]
+        
+        for x, y, text in annotations:
+            fig.add_annotation(
+                text=text,
+                x=x, y=y, 
+                xref="paper", yref="paper", 
+                showarrow=False,
+                font=dict(size=11, color="gray"),
+                align="center"
+            )
+        
+        # Update layout
         fig.update_layout(
             height=2000,
-            width=1800,
-            title_text="Advanced Gaming Health Insights",
+            width=1400,
+            title_text="<b>Advanced Gaming Health Insights</b>",
+            title_x=0.5,
+            title_font_size=24,
             showlegend=False,
             template='plotly_white'
         )
-        axis_configs = [
-            (3, 1, "Time", "Forward Lean"),
-            (3, 2, "Game", "Forward Lean"),
-            (4, 1, "Time", "Back Angle"),
-            (4, 2, "Time", "Shoulder Alignment"),
-            (5, 1, "Hour", "Day"),
-            (5, 2, "Game", "Longest Good Posture Streak")
-        ]
-        for row, col, x_title, y_title in axis_configs:
-            fig.update_xaxes(title_text=x_title, row=row, col=col)
-            fig.update_yaxes(title_text=y_title, row=row, col=col)
+        
+        # Update axis labels
+        fig.update_xaxes(title_text="Time", row=3, col=1)
+        fig.update_yaxes(title_text="Forward Lean", row=3, col=1)
+        
+        fig.update_xaxes(title_text="Game", row=3, col=2)
+        fig.update_yaxes(title_text="Forward Lean", row=3, col=2)
+        
+        fig.update_xaxes(title_text="Time", row=4, col=1)
+        fig.update_yaxes(title_text="Back Angle (°)", row=4, col=1)
+        
+        fig.update_xaxes(title_text="Time", row=4, col=2)
+        fig.update_yaxes(title_text="Shoulder Alignment", row=4, col=2)
+        
+        fig.update_xaxes(title_text="Hour", row=5, col=1)
+        fig.update_yaxes(title_text="Day", row=5, col=1)
+        
+        fig.update_xaxes(title_text="Game", row=5, col=2)
+        fig.update_yaxes(title_text="Longest Streak", row=5, col=2)
+        
+        # Save and show
         fig.write_html("advanced_gaming_health_insights.html")
         fig.show()
 
