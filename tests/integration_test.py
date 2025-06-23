@@ -236,46 +236,25 @@ def test_database_performance():
         print(f"❌ Database performance test failed: {e}")
         return False
 
-def test_export_functionality():
-    """Test CSV export functionality"""
-    print("\n🔍 Testing Export Functionality...")
-    
+def test_dashboard_visualization():
+    """Test dashboard visualization functionality"""
+    print("\n🔍 Testing Dashboard Visualization...")
     try:
-        # Test export logic (simplified version)
-        conn = sqlite3.connect('health_tracker.db')
-        c = conn.cursor()
-        c.execute("SELECT * FROM detailed_logs LIMIT 5")
-        rows = c.fetchall()
-        conn.close()
-        
-        if rows:
-            import csv
-            with open("test_export.csv", "w", newline="", encoding='utf-8') as file:
-                writer = csv.writer(file)
-                writer.writerow([
-                    "ID", "Timestamp", "Action", "Posture Status", "Back Angle", 
-                    "Water Intake", "Break Taken", "Activity", "Forward Lean", 
-                    "Shoulder Alignment", "Session Status", "Game"
-                ])
-                writer.writerows(rows)
-            
-            # Check if file was created
-            if os.path.exists("test_export.csv"):
-                file_size = os.path.getsize("test_export.csv")
-                print(f"✅ Export test successful - file size: {file_size} bytes")
-                
-                # Clean up
-                os.remove("test_export.csv")
-                return True
-            else:
-                print("❌ Export file not created")
-                return False
-        else:
-            print("⚠️  No data to export")
-            return True
-            
+        import sys
+        import os
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../app')))
+        from PlotlyGraphs import HealthInsightsVisualizer
+        visualizer = HealthInsightsVisualizer()
+        assert visualizer.load_and_prepare_data(), "Failed to load data for dashboard."
+        fig = visualizer.create_comprehensive_health_dashboard()
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../advanced_gaming_health_insights.html'))
+        assert os.path.exists(html_path), "Dashboard HTML file was not created."
+        print(f"✅ Dashboard visualization test successful - HTML file at: {html_path}")
+        # Optionally, clean up the file after test
+        # os.remove(html_path)
+        return True
     except Exception as e:
-        print(f"❌ Export functionality test failed: {e}")
+        print(f"❌ Dashboard visualization test failed: {e}")
         return False
 
 def test_missing_mediapipe():
@@ -382,7 +361,7 @@ def main():
         ("Posture Detection Module", test_posture_detection_import),
         ("Data Validation", test_data_validation),
         ("Database Performance", test_database_performance),
-        ("Export Functionality", test_export_functionality),
+        ("Dashboard Visualization", test_dashboard_visualization),
         ("Missing MediaPipe Handling", test_missing_mediapipe),
         ("Camera Failure Handling", test_camera_failure),
         ("Rapid Start/Stop Cleanup", test_rapid_start_stop_cleanup)

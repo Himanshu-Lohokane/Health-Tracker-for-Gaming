@@ -520,28 +520,27 @@ class HealthTracker(QMainWindow):
         self.dark_mode_button.clicked.connect(self.toggle_theme)
         other_buttons_layout.addWidget(self.dark_mode_button, 1, 1)
         
-        # Comment out the Export button from the other_buttons_layout
-        # Export button
-        # self.export_button = QPushButton("Export Logs")
-        # self.export_button.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #FF9800;
-        #         color: white;
-        #         border-radius: 15px;
-        #         padding: 10px;
-        #         font-size: 14px;
-        #         font-weight: bold;
-        #         border: 2px solid #FF9800;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #F57C00;
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: #E65100;
-        #     }
-        # """)
-        # self.export_button.clicked.connect(self.export_logs)
-        # other_buttons_layout.addWidget(self.export_button, 1, 0)
+        # Remove Export button and add Visualize Dashboard button
+        self.visualize_button = QPushButton("Visualize Dashboard")
+        self.visualize_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border-radius: 15px;
+                padding: 10px;
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #3498db;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #2471a3;
+            }
+        """)
+        self.visualize_button.clicked.connect(self.open_dashboard)
+        other_buttons_layout.addWidget(self.visualize_button, 1, 0)
 
         self.right_layout.addLayout(other_buttons_layout)
         
@@ -720,36 +719,17 @@ class HealthTracker(QMainWindow):
         self.logs_timer.stop()
         print("[HealthTracker] Cleanup complete.")
 
-    # Comment out the export_logs method since it is no longer used
-    # def export_logs(self):
-    #     try:
-    #         with sqlite3.connect("health_tracker.db") as conn:
-    #             c = conn.cursor()
-    #             c.execute("SELECT * FROM detailed_logs")
-    #             rows = c.fetchall()
-    #     except sqlite3.Error as e:
-    #         print(f"Database error: {e}")
-    #         rows = []
-
-    #     if not rows:
-    #         QMessageBox.information(self, "No Data", "No data available to export.")
-    #         return
-
-    #     log_directory = "health_logs"
-    #     if not os.path.exists(log_directory):
-    #         os.makedirs(log_directory)
-
-    #     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    #     filename = os.path.join(log_directory, f"detailed_health_logs_{timestamp}.csv")
-
-    #     try:
-    #         with open(filename, "w", newline="") as file:
-    #             writer = csv.writer(file)
-    #             writer.writerow(["ID", "Timestamp", "Back Angle", "Forward Lean", "Shoulder Alignment", "Good Posture", "Forward Lean Flag", "Uneven Shoulders Flag", "Session Status", "Game"])
-    #             writer.writerows(rows)
-    #         QMessageBox.information(self, "Export Success", f"Logs exported as {filename}")
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Export Error", f"An error occurred while exporting logs: {str(e)}")
+    def open_dashboard(self):
+        import subprocess
+        import sys
+        import os
+        # Use sys.executable to ensure the same Python environment
+        script_path = os.path.join(os.path.dirname(__file__), 'PlotlyGraphs.py')
+        subprocess.run([sys.executable, script_path], check=True)
+        # Open the generated HTML file in the default browser
+        import webbrowser
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'advanced_gaming_health_insights.html'))
+        webbrowser.open(f'file://{html_path}')
 
 # Enhanced posture logging function
 def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_name=None):
