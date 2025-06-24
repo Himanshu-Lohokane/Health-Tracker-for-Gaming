@@ -88,3 +88,12 @@
 # Immediate Changes: Iteration 1, Step 5
 
 # (Next step placeholder) 
+
+- Implement foreground app tracking (only log if app is in foreground, not just running in background)
+    - Note: This feature will be generic and will NOT hardcode or filter for specific applications. It will log any app that is in the foreground by default.
+    1. Create a new script: `foreground_tracker_test.py` to detect and log the current foreground window (use pygetwindow or win32gui).
+    2. Test: Manually switch between apps and verify the correct app name is logged.
+    3. Ask user: Is the output format okay? Which apps (if any) should be ignored?
+    4. Create `foreground_tracker_logger.py` (no GUI) to log the foreground app name at intervals.
+    5. Add appropriate directory (e.g., `app/trackers/`) and corresponding tests (e.g., `tests/test_foreground_tracker.py`).
+    6. Once confirmed, integrate into `main3.py` with a toggle for foreground-only mode (user can choose between current and new behavior). 
