@@ -366,7 +366,7 @@ class HealthInsightsVisualizer:
         
         # Save and show
         fig.write_html("advanced_gaming_health_insights.html")
-        fig.show()
+        fig.show(auto_open=False)
         
         return fig
     

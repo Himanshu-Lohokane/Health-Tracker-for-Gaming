@@ -7,6 +7,8 @@ import random
 from datetime import datetime
 import os
 import psutil
+import subprocess
+import webbrowser
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
@@ -720,16 +722,18 @@ class HealthTracker(QMainWindow):
         print("[HealthTracker] Cleanup complete.")
 
     def open_dashboard(self):
-        import subprocess
-        import sys
-        import os
-        # Use sys.executable to ensure the same Python environment
-        script_path = os.path.join(os.path.dirname(__file__), 'PlotlyGraphs.py')
-        subprocess.run([sys.executable, script_path], check=True)
-        # Open the generated HTML file in the default browser
-        import webbrowser
-        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'advanced_gaming_health_insights.html'))
-        webbrowser.open(f'file://{html_path}')
+        try:
+            # Use sys.executable to ensure the same Python environment
+            script_path = os.path.join(os.path.dirname(__file__), 'PlotlyGraphs.py')
+            subprocess.run([sys.executable, script_path], check=True)
+            # Open the generated HTML file in the default browser
+            html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'advanced_gaming_health_insights.html'))
+            if not os.path.exists(html_path):
+                QMessageBox.critical(self, "Dashboard Error", "Dashboard HTML file was not generated.")
+                return
+            webbrowser.open(f'file://{html_path}')
+        except Exception as e:
+            QMessageBox.critical(self, "Dashboard Error", f"Failed to open dashboard: {e}")
 
 # Enhanced posture logging function
 def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_name=None):
