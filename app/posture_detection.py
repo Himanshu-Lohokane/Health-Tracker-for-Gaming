@@ -93,6 +93,7 @@ class PostureDetector:
             back_angle = None
             forward_lean = None
             shoulder_diff = None
+            qt_pixmap = None  # Always assign default
 
             if self.mediapipe_available:
                 try:
@@ -106,6 +107,10 @@ class PostureDetector:
                                 self.mp_pose.POSE_CONNECTIONS
                             )
                             feedback, back_angle, forward_lean, shoulder_diff = self.analyze_pose(results.pose_landmarks.landmark)
+                            # Create pixmap from annotated frame
+                            h, w, ch = frame_rgb.shape
+                            qt_image = QImage(frame_rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
+                            qt_pixmap = QPixmap.fromImage(qt_image)
                         else:
                             feedback = "No pose detected"
                     else:
