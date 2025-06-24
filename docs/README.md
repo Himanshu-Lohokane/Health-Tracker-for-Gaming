@@ -46,7 +46,7 @@ MIT
 
 ## 🚀 Features
 - Real-time posture detection using webcam (MediaPipe)
-- Game detection (Valorant, CS:GO, League, etc.)
+- Foreground app detection
 - Smart notifications for hydration and breaks
 - Points system to gamify healthy habits
 - Detailed health logs (posture, hydration, breaks, game, etc.)
@@ -138,8 +138,8 @@ python data/data_inserter_for_testing.py
 | back_angle           | REAL    | Back angle (degrees)                        |
 | forward_lean         | REAL    | Forward lean value                          |
 | shoulder_alignment   | REAL    | Shoulder alignment value                    |
-| session_status       | TEXT    | Session status (Started, Running, Stopped)  |
-| game                 | TEXT    | Game/process name                           |
+| session_status       | TEXT    | Session status (Started/Running/Stopped)      |
+| game                 | TEXT    | Foreground application/process name          |
 
 *All logging, UI, and tests now use this schema and order. Legacy columns are removed.*
 
@@ -186,3 +186,6 @@ detailed_logs table columns (in order):
 - Database and all code now use only these columns.
 - All legacy columns and logic removed.
 - Integration and logging tests updated.
+
+- The app now logs the foreground application (window/process) at each logging interval (every 30 seconds), not a hardcoded list of apps.
+- All legacy logic for specific app lists has been removed.

@@ -14,15 +14,15 @@
 
 ---
 
-## Move all hardcoded values to a config/settings file
+## ~~Move all hardcoded values to a config/settings file~~
 
-### Sub-steps:
-1. Identify all hardcoded values, thresholds, and parameters in the codebase (app/).
-2. Create a config.py file in app/ and move these values there as constants.
-3. Update all code to import and use these config values instead of hardcoded numbers.
-4. Ensure robust imports for config in all modules (support both script and package usage).
-5. Run all tests and main app to confirm nothing is broken.
-6. Update README/Developer Notes to mention config usage and how to change settings.
+### ~~Sub-steps:~~
+~~1. Identify all hardcoded values, thresholds, and parameters in the codebase (app/).~~
+~~2. Create a config.py file in app/ and move these values there as constants.~~
+~~3. Update all code to import and use these config values instead of hardcoded numbers.~~
+~~4. Ensure robust imports for config in all modules (support both script and package usage).~~
+~~5. Run all tests and main app to confirm nothing is broken.~~
+~~6. Update README/Developer Notes to mention config usage and how to change settings.~~
 
 --------------------------------------------------------------------------------------------
 
@@ -71,29 +71,35 @@
 
 # Immediate Changes: Iteration 1, Step 4.5
 
-## Audit and align collected data with expected/needed data
+## ~~Audit and align collected data with expected/needed data~~
 
-### Sub-steps:
-1. Clear the current database and logs to start fresh.
-2. Run main3.py and interact with the app to generate new data.
-3. Review what data is actually being collected and logged (fields, values, frequency, etc.).
-4. Compare actual collected data with what is expected/needed for analysis, ML, and user feedback.
-5. Identify and document all mismatches, missing fields, or irrelevant/noisy data.
-6. Update data logging, posture detection, and event tracking to ensure all required data is collected, and only useful data is stored.
-7. Test the app and confirm the new data matches expectations.
-8. Update documentation and README if needed.
+### ~~Sub-steps:~~
+~~1. Clear the current database and logs to start fresh.~~
+~~2. Run main3.py and interact with the app to generate new data.~~
+~~3. Review what data is actually being collected and logged (fields, values, frequency, etc.).~~
+~~4. Compare actual collected data with what is expected/needed for analysis, ML, and user feedback.~~
+~~5. Identify and document all mismatches, missing fields, or irrelevant/noisy data.~~
+~~6. Update data logging, posture detection, and event tracking to ensure all required data is collected, and only useful data is stored.~~
+~~7. Test the app and confirm the new data matches expectations.~~
+~~8. Update documentation and README if needed.~~
 
 --------------------------------------------------------------------------------------------
 
 # Immediate Changes: Iteration 1, Step 5
 
-# (Next step placeholder) 
+## ~~Implement foreground app tracking (only log if app is in foreground, not just running in background)~~
 
-- Implement foreground app tracking (only log if app is in foreground, not just running in background)
-    - Note: This feature will be generic and will NOT hardcode or filter for specific applications. It will log any app that is in the foreground by default.
-    1. Create a new script: `foreground_tracker_test.py` to detect and log the current foreground window (use pygetwindow or win32gui).
-    2. Test: Manually switch between apps and verify the correct app name is logged.
-    3. Ask user: Is the output format okay? Which apps (if any) should be ignored?
-    4. Create `foreground_tracker_logger.py` (no GUI) to log the foreground app name at intervals.
-    5. Add appropriate directory (e.g., `app/trackers/`) and corresponding tests (e.g., `tests/test_foreground_tracker.py`).
-    6. Once confirmed, integrate into `main3.py` with a toggle for foreground-only mode (user can choose between current and new behavior). 
+### ~~Sub-steps:~~
+~~1. Create a new script: `foreground_tracker_test.py` to detect and log the current foreground window (use pygetwindow or win32gui).~~
+~~2. Test: Manually switch between apps and verify the correct app name is logged.~~
+~~3. Ask user: Is the output format okay? Which apps (if any) should be ignored?~~
+~~4. Create `foreground_tracker_logger.py` (no GUI) to log the foreground app name at intervals.~~
+~~5. Add appropriate directory (e.g., `app/trackers/`) and corresponding tests (e.g., `tests/test_foreground_tracker.py`).~~
+~~6. Once confirmed, fully replace the old app tracking logic in `main3.py` with the new foreground-only tracking (no toggling, no hardcoded app list). Remove all legacy code and ensure all related logic, logging, and documentation are updated for consistency.~~
+    - ~~For integration: At each 30-second logging interval, detect and log the foreground app at that moment (no continuous tracking or mode calculation; efficient and simple).~~
+
+--------------------------------------------------------------------------------------------
+
+# (Next step placeholder)
+
+- If any new immediate changes are needed, add them here. 

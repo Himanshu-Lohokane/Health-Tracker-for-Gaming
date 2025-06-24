@@ -28,6 +28,40 @@ except ImportError:
 
 from posture_detection import PostureDetector
 
+# Remove old is_game_running and related logic
+# Add foreground app detection
+try:
+    import pygetwindow as gw
+except ImportError:
+    gw = None
+try:
+    import win32gui
+    import win32process
+    import psutil
+except ImportError:
+    win32gui = None
+    win32process = None
+    psutil = None
+
+def get_foreground_app():
+    # Try win32gui/win32process/psutil first for reliable process name
+    if win32gui and win32process and psutil:
+        hwnd = win32gui.GetForegroundWindow()
+        title = win32gui.GetWindowText(hwnd)
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            proc = psutil.Process(pid)
+            exe = proc.name()
+        except Exception:
+            exe = None
+        return title, exe
+    # Fallback: pygetwindow for window title only
+    if gw:
+        win = gw.getActiveWindow()
+        if win:
+            return win.title, None
+    return None, None
+
 # Database setup
 def setup_database():
     try:
@@ -84,19 +118,6 @@ def add_points(points):
             conn.commit()
     except sqlite3.Error as e:
         print(f"Database error: {e}")
-
-# Detect active game process
-def is_game_running():
-    game_name = None
-    for process in psutil.process_iter(['name']):
-        try:
-            if process.info['name'] and process.info['name'].lower() in [
-                'whatsapp.exe', 'valorant.exe', 'leagueclient.exe', 'csgo.exe', 'solitaire.exe']:
-                game_name = process.info['name']
-                return True, game_name
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False, game_name
 
 # Health Tips
 HEALTH_TIPS = [
@@ -158,9 +179,9 @@ class ReminderWorker(QThread):
 
         while self.running:
             current_time = time.time()
-            game_running, game_name = is_game_running()
-            
-            if game_running:
+            title, exe = get_foreground_app()
+            game_name = exe or title or "Unknown"
+            if game_name and game_name != "Unknown":
                 if current_time - last_hydration_reminder >= hydration_interval:
                     try:
                         notification.notify(
@@ -172,7 +193,7 @@ class ReminderWorker(QThread):
                         toaster.show_toast("Hydration Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a sip of water!",
                                         duration=10)
                     
-                    self.notification_sent.emit(f"Hydration reminder sent", "hydration", game_running)
+                    self.notification_sent.emit(f"Hydration reminder sent", "hydration", True)
                     log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=1, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Running", game=game_name)
                     add_points(5)
                     last_hydration_reminder = current_time
@@ -188,7 +209,7 @@ class ReminderWorker(QThread):
                         toaster.show_toast("Break Reminder", f"{random.choice(HEALTH_TIPS)}\nTake a 5-minute break!",
                                         duration=10)
                     
-                    self.notification_sent.emit(f"Break reminder sent", "break", game_running)
+                    self.notification_sent.emit(f"Break reminder sent", "break", True)
                     log_action(back_angle=0, forward_lean=0, shoulder_alignment=0, good_posture=0, forward_lean_flag=0, uneven_shoulders_flag=0, session_status="Running", game=game_name)
                     add_points(10)
                     last_break_reminder = current_time
@@ -610,12 +631,12 @@ class HealthTracker(QMainWindow):
     def update_frame(self, pixmap, feedback, back_angle, forward_lean, shoulder_diff):
         self.video_label.setPixmap(pixmap)
         self.posture_feedback.setText(f"Posture Status: {feedback}")
-        
         # Log aggregated data every 30 seconds
         current_time = time.time()
         if current_time - self.last_log_time >= 30 and self.running:
             aggregated_posture = self.posture_detector.get_aggregated_posture()
-            game_running, game_name = is_game_running()
+            title, exe = get_foreground_app()
+            game_name = exe or title or "Unknown"
             log_posture_data(aggregated_posture, back_angle, forward_lean, shoulder_diff, game_name)
             self.last_log_time = current_time
     
@@ -639,8 +660,9 @@ class HealthTracker(QMainWindow):
             elapsed = int(time.time() - self.start_time)
             self.timer_label.setText(f"Session Timer: {elapsed} seconds")
             
-            game_running, game_name = is_game_running()
-            if game_running:
+            title, exe = get_foreground_app()
+            game_name = exe or title or "Unknown"
+            if game_name and game_name != "Unknown":
                 self.game_status.setText(f"Game Status: Running ({game_name})")
                 self.game_status.setStyleSheet("color: green; font-size:20; font-weight:bold;")
             else:
@@ -655,7 +677,29 @@ class HealthTracker(QMainWindow):
                 rows = c.fetchall()
                 self.log_list.clear()
                 for row in rows:
-                    self.log_list.addItem(f"{row[0]} - Timestamp: {row[1]}, Good Posture: {row[2]}, Forward Lean Flag: {row[3]}, Uneven Shoulders Flag: {row[4]}, Back Angle: {row[5]}, Forward Lean: {row[6]}, Shoulder Alignment: {row[7]}, Session Status: {row[8]}, Game: {row[9]}")
+                    # Unpack fields
+                    _id, timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game = row
+                    # Parse time for display
+                    try:
+                        time_str = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").strftime("%H:%M")
+                    except Exception:
+                        time_str = timestamp
+                    # Build friendly message (mutually exclusive)
+                    if session_status == "Started":
+                        msg = f"🟢 Session started at {time_str} ({game or 'Unknown app'})"
+                    elif session_status == "Stopped":
+                        msg = f"🔴 Session stopped at {time_str} ({game or 'Unknown app'})"
+                    elif forward_lean_flag and uneven_shoulders_flag:
+                        msg = f"⚠️ FL & US detected in {game or 'Unknown app'} at {time_str}"
+                    elif forward_lean_flag:
+                        msg = f"⚠️ Forward lean detected in {game or 'Unknown app'} at {time_str}"
+                    elif uneven_shoulders_flag:
+                        msg = f"⚠️ Uneven shoulders detected in {game or 'Unknown app'} at {time_str}"
+                    elif good_posture:
+                        msg = f"✅ Good posture in {game or 'Unknown app'} at {time_str}"
+                    else:
+                        msg = f"ℹ️ Posture event in {game or 'Unknown app'} at {time_str}"
+                    self.log_list.addItem(msg)
         except sqlite3.Error as e:
             print(f"Database error: {e}")
     
