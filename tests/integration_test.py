@@ -15,9 +15,10 @@ import psutil
 import builtins
 import io
 import contextlib
+import pytz
 
 # Import from app
-from main3 import setup_database, log_action, log_posture_data, is_game_running
+from main3 import setup_database, log_action, log_posture_data, get_foreground_app
 from posture_detection import PostureDetector
 
 def test_database_integration():
@@ -107,38 +108,66 @@ def test_logging_functions():
         print(f"❌ Logging functions test failed: {e}")
         return False
 
-def test_game_detection():
-    """Test game detection functionality"""
-    print("\n🔍 Testing Game Detection...")
-    
+def test_ist_timestamp_logging():
+    """Test that log timestamps are in IST (Asia/Kolkata) timezone."""
+    print("\n🔍 Testing IST Timestamp Logging...")
     try:
-        # Test game detection
-        game_running, game_name = is_game_running()
-        
-        print(f"Game running: {game_running}")
-        print(f"Game name: {game_name}")
-        
-        # Test with a known process (should find at least some system processes)
-        all_processes = []
-        for process in psutil.process_iter(['name']):
-            try:
-                if process.info['name']:
-                    all_processes.append(process.info['name'])
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
-        
-        print(f"Total processes found: {len(all_processes)}")
-        
-        # Check if we can detect any processes
-        if len(all_processes) > 0:
-            print("✅ Game detection system working")
+        # Log a new action
+        log_action(session_status="IST_Test", game="integration_test.exe")
+        time.sleep(1)
+        # Fetch the most recent log with this session_status
+        conn = sqlite3.connect('health_tracker.db')
+        c = conn.cursor()
+        c.execute("SELECT timestamp FROM detailed_logs WHERE session_status = 'IST_Test' ORDER BY id DESC LIMIT 1")
+        row = c.fetchone()
+        conn.close()
+        if not row:
+            print("❌ No IST_Test log found.")
+            return False
+        db_timestamp = row[0]
+        # Parse the timestamp
+        try:
+            db_time = datetime.strptime(db_timestamp, '%Y-%m-%d %H:%M:%S')
+            IST = pytz.timezone('Asia/Kolkata')
+            db_time = IST.localize(db_time)
+        except Exception as e:
+            print(f"❌ Could not parse DB timestamp: {db_timestamp} ({e})")
+            return False
+        # Get current IST time
+        now_ist = datetime.now(IST)
+        # Compare hour and minute (allowing for a 2-minute window)
+        if abs((now_ist - db_time).total_seconds()) < 120:
+            print(f"✅ Timestamp is in IST: {db_timestamp} (Asia/Kolkata now: {now_ist.strftime('%Y-%m-%d %H:%M:%S')})")
+            # Clean up test log
+            conn = sqlite3.connect('health_tracker.db')
+            c = conn.cursor()
+            c.execute("DELETE FROM detailed_logs WHERE session_status = 'IST_Test'")
+            conn.commit()
+            conn.close()
             return True
         else:
-            print("⚠️  No processes detected (might be permission issue)")
-            return True  # Not a failure, just limited access
-            
+            print(f"❌ Timestamp mismatch. DB: {db_timestamp}, IST now: {now_ist.strftime('%Y-%m-%d %H:%M:%S')}")
+            return False
     except Exception as e:
-        print(f"❌ Game detection test failed: {e}")
+        print(f"❌ IST timestamp test failed: {e}")
+        return False
+
+def test_game_detection():
+    """Test foreground app detection functionality"""
+    print("\n🔍 Testing Foreground App Detection...")
+    try:
+        # Test foreground app detection
+        title, exe = get_foreground_app()
+        print(f"Foreground window title: {title}")
+        print(f"Foreground process name: {exe}")
+        if title or exe:
+            print("✅ Foreground app detection working")
+            return True
+        else:
+            print("❌ No foreground app detected")
+            return False
+    except Exception as e:
+        print(f"❌ Foreground app detection test failed: {e}")
         return False
 
 def test_posture_detection_import():
@@ -357,6 +386,7 @@ def main():
     tests = [
         ("Database Integration", test_database_integration),
         ("Logging Functions", test_logging_functions),
+        ("IST Timestamp Logging", test_ist_timestamp_logging),
         ("Game Detection", test_game_detection),
         ("Posture Detection Module", test_posture_detection_import),
         ("Data Validation", test_data_validation),

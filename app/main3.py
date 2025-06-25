@@ -4,11 +4,12 @@ import threading
 import sqlite3
 import csv
 import random
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import os
 import psutil
 import subprocess
 import webbrowser
+import pytz
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
@@ -100,11 +101,13 @@ def setup_database():
 # Insert log into database
 def log_action(back_angle=None, forward_lean=None, shoulder_alignment=None, good_posture=None, forward_lean_flag=None, uneven_shoulders_flag=None, session_status=None, game=None):
     try:
+        IST = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S')
         with sqlite3.connect("health_tracker.db") as conn:
             c = conn.cursor()
             c.execute('''INSERT INTO detailed_logs (timestamp, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game)
-                         VALUES (datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?)''',
-                      (good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game))
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                      (now_ist, good_posture, forward_lean_flag, uneven_shoulders_flag, back_angle, forward_lean, shoulder_alignment, session_status, game))
             conn.commit()
     except sqlite3.Error as e:
         print(f"Database error: {e}")
