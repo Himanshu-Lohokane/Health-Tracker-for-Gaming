@@ -3,3 +3,8 @@ __pycache__/
 
 # HTML files (visualizations)
 advanced_gaming_health_insights.html
+
+# build files
+build/
+packaged_app/
+dist/

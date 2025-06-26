@@ -815,6 +815,10 @@ def log_posture_data(feedback, back_angle, forward_lean, shoulder_diff, game_nam
     )
 
 def main():
+    if getattr(sys, 'frozen', False):
+        print('[DEBUG] Running in PyInstaller packaged mode')
+        os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
+    
     setup_database()
     
     app = QApplication(sys.argv)
